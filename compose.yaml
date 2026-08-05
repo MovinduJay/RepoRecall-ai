@@ -1,0 +1,64 @@
+name: reporecall
+
+x-backend-service: &backend-service
+  build:
+    context: ./backend
+  env_file:
+    - .env
+  volumes:
+    - ./backend:/app
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: reporecall
+      POSTGRES_PASSWORD: reporecall
+      POSTGRES_DB: reporecall
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reporecall -d reporecall"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+
+  migrate:
+    <<: *backend-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: alembic upgrade head
+    restart: "no"
+
+  api:
+    <<: *backend-service
+    ports:
+      - "8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      qdrant:
+        condition: service_started
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  worker:
+    <<: *backend-service
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    command: python -m app.workers.indexing_worker
+
+volumes:
+  postgres_data:
+  qdrant_storage:

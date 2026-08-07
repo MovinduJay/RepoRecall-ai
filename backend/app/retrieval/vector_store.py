@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from qdrant_client import AsyncQdrantClient, models
 
-from app.retrieval.embeddings import embed_passage, embed_query
+from app.retrieval.embeddings import embed_query
 
 COLLECTION_NAME = "github_chunks"
 VECTOR_SIZE = 384
@@ -25,31 +25,12 @@ class SemanticSearchResult:
     html_url: str
     chunk_index: int
 
+
 QDRANT_URL = os.getenv(
     "QDRANT_URL",
     "http://qdrant:6333",
 )
 
-DEMO_DOCUMENTS = [
-    {
-        "source_id": "issue-101",
-        "text": "RabbitMQ redelivery created duplicate invoices.",
-        "source_type": "issue",
-        "title": "Duplicate invoice processing",
-    },
-    {
-        "source_id": "issue-102",
-        "text": "Expired JWT access tokens caused users to be logged out.",
-        "source_type": "issue",
-        "title": "Unexpected user logout",
-    },
-    {
-        "source_id": "issue-103",
-        "text": "The PostgreSQL connection pool was exhausted during high traffic.",
-        "source_type": "issue",
-        "title": "Database connections unavailable",
-    },
-]
 
 def get_qdrant_client() -> AsyncQdrantClient:
     return AsyncQdrantClient(url=QDRANT_URL)
@@ -78,90 +59,6 @@ async def ensure_collection(
     )
 
 
-async def store_sample_point() -> str:
-    """
-    Create one embedding and store it in Qdrant.
-    """
-
-    client = get_qdrant_client()
-
-    try:
-        await ensure_collection(client)
-
-        text = "RabbitMQ redelivery created duplicate invoices."
-
-        vector = embed_passage(text)
-
-        point_id = str(uuid.uuid4())
-
-        await client.upsert(
-            collection_name=COLLECTION_NAME,
-            wait=True,
-            points=[
-                models.PointStruct(
-                    id=point_id,
-                    vector=vector,
-                    payload={
-                        "text": text,
-                        "source_type": "issue",
-                        "title": "Duplicate invoice processing",
-                        "repository": "example/billing-service",
-                    },
-                )
-            ],
-        )
-
-        return point_id
-
-    finally:
-        await client.close()
-        
-        
-async def store_demo_points() -> int:
-    """
-    Embed and store several example GitHub documents.
-    """
-
-    client = get_qdrant_client()
-
-    try:
-        await ensure_collection(client)
-
-        points: list[models.PointStruct] = []
-
-        for document in DEMO_DOCUMENTS:
-            vector = embed_passage(document["text"])
-
-            # uuid5 produces the same UUID for the same source ID.
-            # Running this function again updates the point instead of duplicating it.
-            point_id = str(
-                uuid.uuid5(
-                    uuid.NAMESPACE_URL,
-                    f"reporecall:{document['source_id']}",
-                )
-            )
-
-            points.append(
-                models.PointStruct(
-                    id=point_id,
-                    vector=vector,
-                    payload=document,
-                )
-            )
-
-        await client.upsert(
-            collection_name=COLLECTION_NAME,
-            wait=True,
-            points=points,
-        )
-
-        return len(points)
-
-    finally:
-        await client.close()       
-        
-        
-        
 async def search_similar(
     repository_id: uuid.UUID,
     query: str,

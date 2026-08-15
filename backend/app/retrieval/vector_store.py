@@ -47,15 +47,20 @@ async def ensure_collection(
         collection_name=COLLECTION_NAME
     )
 
-    if exists:
-        return
+    if not exists:
+        await client.create_collection(
+            collection_name=COLLECTION_NAME,
+            vectors_config=models.VectorParams(
+                size=VECTOR_SIZE,
+                distance=models.Distance.COSINE,
+            ),
+        )
 
-    await client.create_collection(
+    await client.create_payload_index(
         collection_name=COLLECTION_NAME,
-        vectors_config=models.VectorParams(
-            size=VECTOR_SIZE,
-            distance=models.Distance.COSINE,
-        ),
+        field_name="repository_id",
+        field_schema=models.PayloadSchemaType.KEYWORD,
+        wait=True,
     )
 
 

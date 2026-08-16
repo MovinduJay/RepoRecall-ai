@@ -8,6 +8,43 @@ from app.retrieval import vector_store
 
 
 @pytest.mark.asyncio
+async def test_ensure_collection_creates_collection_and_repository_index() -> None:
+    client = AsyncMock()
+    client.collection_exists.return_value = False
+
+    await vector_store.ensure_collection(client)
+
+    client.create_collection.assert_awaited_once()
+    collection_arguments = client.create_collection.await_args.kwargs
+    vector_parameters = collection_arguments["vectors_config"]
+    assert collection_arguments["collection_name"] == vector_store.COLLECTION_NAME
+    assert vector_parameters.size == vector_store.VECTOR_SIZE
+    assert vector_parameters.distance == vector_store.models.Distance.COSINE
+    client.create_payload_index.assert_awaited_once_with(
+        collection_name=vector_store.COLLECTION_NAME,
+        field_name="repository_id",
+        field_schema=vector_store.models.PayloadSchemaType.KEYWORD,
+        wait=True,
+    )
+
+
+@pytest.mark.asyncio
+async def test_ensure_collection_indexes_existing_collection() -> None:
+    client = AsyncMock()
+    client.collection_exists.return_value = True
+
+    await vector_store.ensure_collection(client)
+
+    client.create_collection.assert_not_awaited()
+    client.create_payload_index.assert_awaited_once_with(
+        collection_name=vector_store.COLLECTION_NAME,
+        field_name="repository_id",
+        field_schema=vector_store.models.PayloadSchemaType.KEYWORD,
+        wait=True,
+    )
+
+
+@pytest.mark.asyncio
 async def test_search_similar_filters_repository_and_returns_structured_results(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

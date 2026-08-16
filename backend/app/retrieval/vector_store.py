@@ -40,7 +40,7 @@ async def ensure_collection(
     client: AsyncQdrantClient,
 ) -> None:
     """
-    Create the collection only when it does not already exist.
+    Ensure the collection and repository filter index exist.
     """
 
     exists = await client.collection_exists(

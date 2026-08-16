@@ -3,6 +3,7 @@ from app.ingestion.normalizers import (
     RawDocumentInput,
     normalize_commit,
     normalize_issue,
+    normalize_issue_comment,
     normalize_pull_request,
 )
 
@@ -11,5 +12,6 @@ __all__ = [
     "RawDocumentInput",
     "normalize_commit",
     "normalize_issue",
+    "normalize_issue_comment",
     "normalize_pull_request",
 ]

@@ -72,6 +72,15 @@ class GitHubApiClient:
             max_items=max_items,
         )
 
+    async def list_issue_comments(
+        self, owner: str, name: str, max_items: int
+    ) -> list[dict[str, Any]]:
+        return await self._collect_pages(
+            f"/repos/{owner}/{name}/issues/comments",
+            params={"sort": "updated", "direction": "desc"},
+            max_items=max_items,
+        )
+
     async def list_commits(
         self, owner: str, name: str, max_items: int
     ) -> list[dict[str, Any]]:

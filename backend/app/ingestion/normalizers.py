@@ -67,6 +67,29 @@ def normalize_pull_request(pull_request: dict[str, Any]) -> RawDocumentInput:
     )
 
 
+def normalize_issue_comment(comment: dict[str, Any]) -> RawDocumentInput:
+    parent_number = _issue_number_from_url(comment.get("issue_url"))
+    parent_label = f" #{parent_number}" if parent_number is not None else ""
+
+    return _build_document(
+        source_type="issue_comment",
+        source_id=str(comment["id"]),
+        source_number=None,
+        title=f"Comment on issue or pull request{parent_label}",
+        body=comment.get("body") or "",
+        html_url=comment["html_url"],
+        author=_nested_value(comment, "user", "login"),
+        state=None,
+        document_metadata={
+            "parent_number": parent_number,
+            "author_association": comment.get("author_association"),
+            "minimized": comment.get("minimized", False),
+        },
+        created_at=comment.get("created_at"),
+        updated_at=comment.get("updated_at"),
+    )
+
+
 def normalize_commit(commit_item: dict[str, Any]) -> RawDocumentInput:
     commit = commit_item.get("commit") or {}
     message = commit.get("message") or ""
@@ -148,3 +171,11 @@ def _nested_value(data: dict[str, Any], *path: str) -> Any:
             return None
         current = current.get(key)
     return current
+
+
+def _issue_number_from_url(issue_url: Any) -> int | None:
+    if not isinstance(issue_url, str):
+        return None
+
+    number_text = issue_url.rstrip("/").rsplit("/", maxsplit=1)[-1]
+    return int(number_text) if number_text.isdigit() else None

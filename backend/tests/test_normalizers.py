@@ -1,4 +1,9 @@
-from app.ingestion.normalizers import normalize_commit, normalize_issue, normalize_pull_request
+from app.ingestion.normalizers import (
+    normalize_commit,
+    normalize_issue,
+    normalize_issue_comment,
+    normalize_pull_request,
+)
 
 
 def test_normalize_issue_creates_stable_searchable_record() -> None:
@@ -45,6 +50,29 @@ def test_normalize_pull_request_keeps_branch_metadata() -> None:
 
     assert pull_request.document_metadata["base_ref"] == "main"
     assert pull_request.document_metadata["head_sha"] == "abc123"
+
+
+def test_normalize_issue_comment_keeps_parent_metadata() -> None:
+    comment = normalize_issue_comment(
+        {
+            "id": 301,
+            "body": "Acknowledge the message only after the transaction commits.",
+            "html_url": "https://github.com/acme/billing/issues/12#issuecomment-301",
+            "issue_url": "https://api.github.com/repos/acme/billing/issues/12",
+            "user": {"login": "reviewer"},
+            "author_association": "COLLABORATOR",
+            "created_at": "2026-07-02T11:00:00Z",
+            "updated_at": "2026-07-02T12:00:00Z",
+        }
+    )
+
+    assert comment.source_type == "issue_comment"
+    assert comment.source_id == "301"
+    assert comment.source_number is None
+    assert comment.title == "Comment on issue or pull request #12"
+    assert comment.document_metadata["parent_number"] == 12
+    assert comment.document_metadata["author_association"] == "COLLABORATOR"
+    assert len(comment.content_hash) == 64
 
 
 def test_normalize_commit_splits_subject_from_body() -> None:

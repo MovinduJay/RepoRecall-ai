@@ -133,6 +133,7 @@ def test_normalize_pull_request_file_keeps_patch_separate() -> None:
     assert file_input.status == "renamed"
     assert file_input.changes == 6
     assert file_input.patch.startswith("@@ -20")
+    assert len(file_input.content_hash) == 64
 
 
 def test_normalize_commit_splits_subject_from_body() -> None:

@@ -45,4 +45,5 @@ def _file_input(patch: str | None) -> PullRequestFileInput:
         blob_url="https://github.com/acme/billing/blob/abc123/app/consumer.py",
         raw_url="https://github.com/acme/billing/raw/abc123/app/consumer.py",
         contents_url="https://api.github.com/repos/acme/billing/contents/app/consumer.py",
+        content_hash="a" * 64,
     )

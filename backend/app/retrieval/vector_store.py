@@ -38,18 +38,19 @@ def get_qdrant_client() -> AsyncQdrantClient:
 
 async def ensure_collection(
     client: AsyncQdrantClient,
+    collection_name: str | None = None,
 ) -> None:
     """
     Ensure the collection and repository filter index exist.
     """
 
-    exists = await client.collection_exists(
-        collection_name=COLLECTION_NAME
-    )
+    resolved_collection_name = collection_name or COLLECTION_NAME
+
+    exists = await client.collection_exists(collection_name=resolved_collection_name)
 
     if not exists:
         await client.create_collection(
-            collection_name=COLLECTION_NAME,
+            collection_name=resolved_collection_name,
             vectors_config=models.VectorParams(
                 size=VECTOR_SIZE,
                 distance=models.Distance.COSINE,
@@ -57,7 +58,7 @@ async def ensure_collection(
         )
 
     await client.create_payload_index(
-        collection_name=COLLECTION_NAME,
+        collection_name=resolved_collection_name,
         field_name="repository_id",
         field_schema=models.PayloadSchemaType.KEYWORD,
         wait=True,

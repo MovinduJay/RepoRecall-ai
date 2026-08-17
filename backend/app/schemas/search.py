@@ -38,3 +38,27 @@ class SemanticSearchResultRead(BaseModel):
 class SemanticSearchResponse(BaseModel):
     query: str
     results: list[SemanticSearchResultRead]
+
+
+class DiffSearchRequest(SemanticSearchRequest):
+    pass
+
+
+class DiffSearchResultRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    score: float
+    repository_id: str
+    pull_request_number: int
+    file_path: str
+    status: str
+    sha: str
+    hunk_header: str
+    hunk_index: int
+    text: str
+    blob_url: str
+
+
+class DiffSearchResponse(BaseModel):
+    query: str
+    results: list[DiffSearchResultRead]

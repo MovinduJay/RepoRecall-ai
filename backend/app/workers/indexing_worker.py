@@ -12,14 +12,17 @@ from app.core.config import settings
 from app.db.session import dispose_engine, get_session_factory
 from app.ingestion.github_client import GitHubApiClient
 from app.ingestion.normalizers import (
+    PullRequestFileInput,
     RawDocumentInput,
     normalize_commit,
     normalize_issue,
     normalize_issue_comment,
     normalize_pull_request,
+    normalize_pull_request_file,
     normalize_pull_request_review_comment,
 )
 from app.models.indexing_job import IndexingJob
+from app.models.pull_request_file import PullRequestFile
 from app.models.raw_document import RawDocument
 from app.models.repository import Repository
 
@@ -28,6 +31,9 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
 )
 logger = logging.getLogger("reporecall.indexing-worker")
+
+PULL_REQUESTS_WITH_FILES_LIMIT = 10
+FILES_PER_PULL_REQUEST_LIMIT = 100
 
 
 async def claim_next_job() -> uuid.UUID | None:
@@ -70,6 +76,12 @@ async def process_job(job_id: uuid.UUID) -> None:
             pull_requests = await client.list_pull_requests(
                 repository.owner, repository.name, job.max_items_per_source
             )
+            pull_request_files = await _fetch_pull_request_files(
+                client=client,
+                owner=repository.owner,
+                name=repository.name,
+                pull_requests=pull_requests,
+            )
             issue_comments = await client.list_issue_comments(
                 repository.owner, repository.name, job.max_items_per_source
             )
@@ -89,6 +101,7 @@ async def process_job(job_id: uuid.UUID) -> None:
             documents.extend(normalize_commit(item) for item in commits)
 
             await _upsert_documents(repository.id, documents)
+            await _upsert_pull_request_files(repository.id, pull_request_files)
             latest_sha = commits[0].get("sha") if commits else repository.latest_indexed_sha
             await _mark_completed(
                 job_id=job.id,
@@ -101,11 +114,12 @@ async def process_job(job_id: uuid.UUID) -> None:
                 latest_sha=latest_sha,
             )
             logger.info(
-                "Completed job %s for %s/%s: %s documents",
+                "Completed job %s for %s/%s: %s documents and %s pull request files",
                 job.id,
                 repository.owner,
                 repository.name,
                 len(documents),
+                len(pull_request_files),
             )
         except Exception as exc:
             logger.exception("Indexing job %s failed", job.id)
@@ -155,6 +169,84 @@ async def _upsert_documents(
             "content_hash": statement.excluded.content_hash,
             "github_created_at": statement.excluded.github_created_at,
             "github_updated_at": statement.excluded.github_updated_at,
+            "ingested_at": datetime.now(UTC),
+        },
+    )
+
+    async with get_session_factory()() as session, session.begin():
+        await session.execute(statement)
+
+
+async def _fetch_pull_request_files(
+    *,
+    client: GitHubApiClient,
+    owner: str,
+    name: str,
+    pull_requests: list[dict],
+) -> list[PullRequestFileInput]:
+    normalized_files: list[PullRequestFileInput] = []
+
+    for pull_request in pull_requests[:PULL_REQUESTS_WITH_FILES_LIMIT]:
+        pull_request_number = pull_request.get("number")
+        if not isinstance(pull_request_number, int):
+            continue
+
+        file_items = await client.list_pull_request_files(
+            owner=owner,
+            name=name,
+            pull_request_number=pull_request_number,
+            max_items=FILES_PER_PULL_REQUEST_LIMIT,
+        )
+        normalized_files.extend(
+            normalize_pull_request_file(pull_request_number, item) for item in file_items
+        )
+
+    return normalized_files
+
+
+async def _upsert_pull_request_files(
+    repository_id: uuid.UUID,
+    files: list[PullRequestFileInput],
+) -> None:
+    if not files:
+        return
+
+    values = [
+        {
+            "id": uuid.uuid4(),
+            "repository_id": repository_id,
+            "pull_request_number": file.pull_request_number,
+            "file_path": file.file_path,
+            "previous_file_path": file.previous_file_path,
+            "status": file.status,
+            "sha": file.sha,
+            "additions": file.additions,
+            "deletions": file.deletions,
+            "changes": file.changes,
+            "patch": file.patch,
+            "blob_url": file.blob_url,
+            "raw_url": file.raw_url,
+            "contents_url": file.contents_url,
+            "content_hash": file.content_hash,
+        }
+        for file in files
+    ]
+
+    statement = insert(PullRequestFile).values(values)
+    statement = statement.on_conflict_do_update(
+        constraint="uq_pull_request_file_repository_pr_path",
+        set_={
+            "previous_file_path": statement.excluded.previous_file_path,
+            "status": statement.excluded.status,
+            "sha": statement.excluded.sha,
+            "additions": statement.excluded.additions,
+            "deletions": statement.excluded.deletions,
+            "changes": statement.excluded.changes,
+            "patch": statement.excluded.patch,
+            "blob_url": statement.excluded.blob_url,
+            "raw_url": statement.excluded.raw_url,
+            "contents_url": statement.excluded.contents_url,
+            "content_hash": statement.excluded.content_hash,
             "ingested_at": datetime.now(UTC),
         },
     )

@@ -37,6 +37,7 @@ class PullRequestFileInput:
     blob_url: str
     raw_url: str
     contents_url: str
+    content_hash: str
 
 
 def normalize_issue(issue: dict[str, Any]) -> RawDocumentInput:
@@ -143,6 +144,18 @@ def normalize_pull_request_file(
     pull_request_number: int,
     file_item: dict[str, Any],
 ) -> PullRequestFileInput:
+    hash_payload = {
+        "pull_request_number": pull_request_number,
+        "file_path": file_item["filename"],
+        "status": file_item["status"],
+        "sha": file_item["sha"],
+        "previous_file_path": file_item.get("previous_filename"),
+        "additions": file_item.get("additions", 0),
+        "deletions": file_item.get("deletions", 0),
+        "changes": file_item.get("changes", 0),
+        "patch": file_item.get("patch"),
+    }
+
     return PullRequestFileInput(
         pull_request_number=pull_request_number,
         file_path=file_item["filename"],
@@ -156,6 +169,7 @@ def normalize_pull_request_file(
         blob_url=file_item["blob_url"],
         raw_url=file_item["raw_url"],
         contents_url=file_item["contents_url"],
+        content_hash=_content_hash(hash_payload),
     )
 
 
@@ -208,9 +222,6 @@ def _build_document(
         "body": body,
         "metadata": document_metadata,
     }
-    serialized = json.dumps(hash_payload, sort_keys=True, ensure_ascii=False, default=str)
-    content_hash = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
-
     return RawDocumentInput(
         source_type=source_type,
         source_id=source_id,
@@ -223,7 +234,7 @@ def _build_document(
         document_metadata=document_metadata,
         github_created_at=_parse_datetime(created_at),
         github_updated_at=_parse_datetime(updated_at),
-        content_hash=content_hash,
+        content_hash=_content_hash(hash_payload),
     )
 
 
@@ -231,6 +242,11 @@ def _parse_datetime(value: str | None) -> datetime | None:
     if value is None:
         return None
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def _content_hash(payload: dict[str, Any]) -> str:
+    serialized = json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str)
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
 
 def _nested_value(data: dict[str, Any], *path: str) -> Any:

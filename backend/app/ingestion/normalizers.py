@@ -23,6 +23,22 @@ class RawDocumentInput:
     content_hash: str
 
 
+@dataclass(frozen=True, slots=True)
+class PullRequestFileInput:
+    pull_request_number: int
+    file_path: str
+    status: str
+    sha: str
+    previous_file_path: str | None
+    additions: int
+    deletions: int
+    changes: int
+    patch: str | None
+    blob_url: str
+    raw_url: str
+    contents_url: str
+
+
 def normalize_issue(issue: dict[str, Any]) -> RawDocumentInput:
     labels = [label.get("name") for label in issue.get("labels", []) if label.get("name")]
     return _build_document(
@@ -120,6 +136,26 @@ def normalize_pull_request_review_comment(comment: dict[str, Any]) -> RawDocumen
         },
         created_at=comment.get("created_at"),
         updated_at=comment.get("updated_at"),
+    )
+
+
+def normalize_pull_request_file(
+    pull_request_number: int,
+    file_item: dict[str, Any],
+) -> PullRequestFileInput:
+    return PullRequestFileInput(
+        pull_request_number=pull_request_number,
+        file_path=file_item["filename"],
+        status=file_item["status"],
+        sha=file_item["sha"],
+        previous_file_path=file_item.get("previous_filename"),
+        additions=file_item.get("additions", 0),
+        deletions=file_item.get("deletions", 0),
+        changes=file_item.get("changes", 0),
+        patch=file_item.get("patch"),
+        blob_url=file_item["blob_url"],
+        raw_url=file_item["raw_url"],
+        contents_url=file_item["contents_url"],
     )
 
 

@@ -3,6 +3,7 @@ from app.ingestion.normalizers import (
     normalize_issue,
     normalize_issue_comment,
     normalize_pull_request,
+    normalize_pull_request_file,
     normalize_pull_request_review_comment,
 )
 
@@ -106,6 +107,32 @@ def test_normalize_review_comment_keeps_code_location_metadata() -> None:
     assert comment.document_metadata["diff_hunk"].startswith("@@ -20")
     assert comment.document_metadata["line"] == 21
     assert len(comment.content_hash) == 64
+
+
+def test_normalize_pull_request_file_keeps_patch_separate() -> None:
+    file_input = normalize_pull_request_file(
+        pull_request_number=14,
+        file_item={
+            "sha": "abc123",
+            "filename": "app/consumer.py",
+            "previous_filename": "app/old_consumer.py",
+            "status": "renamed",
+            "additions": 4,
+            "deletions": 2,
+            "changes": 6,
+            "patch": "@@ -20,2 +20,4 @@\n-ack()\n commit()\n+commit()\n+ack()",
+            "blob_url": "https://github.com/acme/billing/blob/abc123/app/consumer.py",
+            "raw_url": "https://github.com/acme/billing/raw/abc123/app/consumer.py",
+            "contents_url": "https://api.github.com/repos/acme/billing/contents/app/consumer.py",
+        },
+    )
+
+    assert file_input.pull_request_number == 14
+    assert file_input.file_path == "app/consumer.py"
+    assert file_input.previous_file_path == "app/old_consumer.py"
+    assert file_input.status == "renamed"
+    assert file_input.changes == 6
+    assert file_input.patch.startswith("@@ -20")
 
 
 def test_normalize_commit_splits_subject_from_body() -> None:

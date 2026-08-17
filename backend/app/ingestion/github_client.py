@@ -90,6 +90,19 @@ class GitHubApiClient:
             max_items=max_items,
         )
 
+    async def list_pull_request_files(
+        self,
+        owner: str,
+        name: str,
+        pull_request_number: int,
+        max_items: int,
+    ) -> list[dict[str, Any]]:
+        return await self._collect_pages(
+            f"/repos/{owner}/{name}/pulls/{pull_request_number}/files",
+            params={},
+            max_items=max_items,
+        )
+
     async def list_commits(
         self, owner: str, name: str, max_items: int
     ) -> list[dict[str, Any]]:

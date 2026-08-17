@@ -85,6 +85,38 @@ async def test_list_review_comments_uses_repository_review_endpoint() -> None:
 
 
 @pytest.mark.asyncio
+async def test_list_pull_request_files_uses_numbered_pr_endpoint() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/repos/owner/repo/pulls/14/files"
+        assert request.url.params["per_page"] == "100"
+        return httpx.Response(
+            200,
+            json=[
+                {
+                    "sha": "abc123",
+                    "filename": "app/consumer.py",
+                    "status": "modified",
+                    "additions": 4,
+                    "deletions": 2,
+                    "changes": 6,
+                    "patch": "@@ -20,2 +20,4 @@",
+                }
+            ],
+            request=request,
+        )
+
+    async with httpx.AsyncClient(
+        base_url="https://api.github.test", transport=httpx.MockTransport(handler)
+    ) as http_client:
+        client = GitHubApiClient(client=http_client)
+        files = await client.list_pull_request_files(
+            "owner", "repo", pull_request_number=14, max_items=10
+        )
+
+    assert [file["filename"] for file in files] == ["app/consumer.py"]
+
+
+@pytest.mark.asyncio
 async def test_pagination_stops_at_requested_limit() -> None:
     requested_pages: list[int] = []
 

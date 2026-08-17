@@ -44,8 +44,12 @@ class RawDocument(Base):
         JSONB, nullable=False, default=dict
     )
     content_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
-    github_created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    github_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    github_created_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    github_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     ingested_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )

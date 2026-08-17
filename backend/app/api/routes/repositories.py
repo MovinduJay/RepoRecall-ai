@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -20,7 +21,7 @@ router = APIRouter(prefix="/repositories", tags=["repositories"])
 @router.post("", response_model=RepositoryRead, status_code=status.HTTP_201_CREATED)
 async def create_repository(
     payload: RepositoryCreate,
-    session: AsyncSession = Depends(get_db_session),
+    session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> Repository:
     owner, name = payload.owner_and_name()
     repository = Repository(
@@ -46,7 +47,7 @@ async def create_repository(
 
 @router.get("", response_model=list[RepositoryRead])
 async def list_repositories(
-    session: AsyncSession = Depends(get_db_session),
+    session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> list[Repository]:
     result = await session.execute(select(Repository).order_by(Repository.created_at.desc()))
     return list(result.scalars().all())
@@ -59,8 +60,8 @@ async def list_repositories(
 )
 async def start_repository_sync(
     repository_id: uuid.UUID,
+    session: Annotated[AsyncSession, Depends(get_db_session)],
     payload: RepositorySyncRequest | None = None,
-    session: AsyncSession = Depends(get_db_session),
 ) -> IndexingJob:
     repository = await session.get(Repository, repository_id)
     if repository is None:

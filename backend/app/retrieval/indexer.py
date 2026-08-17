@@ -15,7 +15,6 @@ from app.retrieval.vector_store import (
     get_qdrant_client,
 )
 
-
 EMBEDDING_BATCH_SIZE = 16
 
 

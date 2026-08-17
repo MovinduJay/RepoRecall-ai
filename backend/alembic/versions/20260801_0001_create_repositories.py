@@ -8,8 +8,9 @@ Create Date: 2026-08-01
 from collections.abc import Sequence
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision: str = "20260801_0001"
 down_revision: str | None = None
@@ -25,7 +26,12 @@ def upgrade() -> None:
         sa.Column("name", sa.String(length=100), nullable=False),
         sa.Column("github_url", sa.String(length=500), nullable=False),
         sa.Column("default_branch", sa.String(length=100), nullable=False, server_default="main"),
-        sa.Column("indexing_status", sa.String(length=30), nullable=False, server_default="pending"),
+        sa.Column(
+            "indexing_status",
+            sa.String(length=30),
+            nullable=False,
+            server_default="pending",
+        ),
         sa.Column("latest_indexed_sha", sa.String(length=40), nullable=True),
         sa.Column(
             "created_at",

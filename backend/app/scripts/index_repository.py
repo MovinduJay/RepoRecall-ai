@@ -5,7 +5,6 @@ import asyncio
 import uuid
 
 from app.db.session import get_session_factory
-
 from app.retrieval.indexer import index_repository_documents
 
 

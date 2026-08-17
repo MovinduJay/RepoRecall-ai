@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy import text
@@ -18,7 +18,7 @@ async def health() -> dict[str, str]:
 @router.get("/ready")
 async def readiness(
     response: Response,
-    session: AsyncSession = Depends(get_db_session),
+    session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> dict[str, Literal["ok", "unavailable"]]:
     postgres_ok = True
     try:

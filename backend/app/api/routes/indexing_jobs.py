@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import uuid
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db_session
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/indexing-jobs", tags=["indexing jobs"])
 @router.get("/{job_id}", response_model=IndexingJobRead)
 async def get_indexing_job(
     job_id: uuid.UUID,
-    session: AsyncSession = Depends(get_db_session),
+    session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> IndexingJob:
     job = await session.get(IndexingJob, job_id)
     if job is None:

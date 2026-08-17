@@ -55,6 +55,36 @@ async def test_list_issue_comments_uses_repository_comments_endpoint() -> None:
 
 
 @pytest.mark.asyncio
+async def test_list_review_comments_uses_repository_review_endpoint() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/repos/owner/repo/pulls/comments"
+        assert request.url.params["sort"] == "updated"
+        assert request.url.params["direction"] == "desc"
+        assert request.url.params["per_page"] == "100"
+        return httpx.Response(
+            200,
+            json=[
+                {
+                    "id": 201,
+                    "body": "Move this acknowledgement after the transaction.",
+                    "path": "app/consumer.py",
+                }
+            ],
+            request=request,
+        )
+
+    async with httpx.AsyncClient(
+        base_url="https://api.github.test", transport=httpx.MockTransport(handler)
+    ) as http_client:
+        client = GitHubApiClient(client=http_client)
+        comments = await client.list_pull_request_review_comments(
+            "owner", "repo", max_items=10
+        )
+
+    assert [comment["id"] for comment in comments] == [201]
+
+
+@pytest.mark.asyncio
 async def test_pagination_stops_at_requested_limit() -> None:
     requested_pages: list[int] = []
 

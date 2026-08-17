@@ -3,6 +3,7 @@ from app.ingestion.normalizers import (
     normalize_issue,
     normalize_issue_comment,
     normalize_pull_request,
+    normalize_pull_request_review_comment,
 )
 
 
@@ -72,6 +73,38 @@ def test_normalize_issue_comment_keeps_parent_metadata() -> None:
     assert comment.title == "Comment on issue or pull request #12"
     assert comment.document_metadata["parent_number"] == 12
     assert comment.document_metadata["author_association"] == "COLLABORATOR"
+    assert len(comment.content_hash) == 64
+
+
+def test_normalize_review_comment_keeps_code_location_metadata() -> None:
+    comment = normalize_pull_request_review_comment(
+        {
+            "id": 401,
+            "pull_request_review_id": 501,
+            "body": "Move acknowledgement after the database transaction.",
+            "html_url": "https://github.com/acme/billing/pull/14#discussion_r401",
+            "pull_request_url": "https://api.github.com/repos/acme/billing/pulls/14",
+            "user": {"login": "reviewer"},
+            "author_association": "COLLABORATOR",
+            "path": "app/consumer.py",
+            "diff_hunk": "@@ -20,2 +20,2 @@\n-ack()\n commit()",
+            "commit_id": "abc123",
+            "original_commit_id": "def456",
+            "line": 21,
+            "side": "RIGHT",
+            "created_at": "2026-07-02T11:00:00Z",
+            "updated_at": "2026-07-02T12:00:00Z",
+        }
+    )
+
+    assert comment.source_type == "pull_request_review_comment"
+    assert comment.source_id == "401"
+    assert comment.source_number is None
+    assert comment.title == "Review comment on pull request #14 on app/consumer.py"
+    assert comment.document_metadata["pull_request_number"] == 14
+    assert comment.document_metadata["file_path"] == "app/consumer.py"
+    assert comment.document_metadata["diff_hunk"].startswith("@@ -20")
+    assert comment.document_metadata["line"] == 21
     assert len(comment.content_hash) == 64
 
 

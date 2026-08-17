@@ -17,6 +17,7 @@ from app.ingestion.normalizers import (
     normalize_issue,
     normalize_issue_comment,
     normalize_pull_request,
+    normalize_pull_request_review_comment,
 )
 from app.models.indexing_job import IndexingJob
 from app.models.raw_document import RawDocument
@@ -72,6 +73,9 @@ async def process_job(job_id: uuid.UUID) -> None:
             issue_comments = await client.list_issue_comments(
                 repository.owner, repository.name, job.max_items_per_source
             )
+            review_comments = await client.list_pull_request_review_comments(
+                repository.owner, repository.name, job.max_items_per_source
+            )
             commits = await client.list_commits(
                 repository.owner, repository.name, job.max_items_per_source
             )
@@ -79,6 +83,9 @@ async def process_job(job_id: uuid.UUID) -> None:
             documents = [normalize_issue(item) for item in issues]
             documents.extend(normalize_pull_request(item) for item in pull_requests)
             documents.extend(normalize_issue_comment(item) for item in issue_comments)
+            documents.extend(
+                normalize_pull_request_review_comment(item) for item in review_comments
+            )
             documents.extend(normalize_commit(item) for item in commits)
 
             await _upsert_documents(repository.id, documents)

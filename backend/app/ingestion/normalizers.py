@@ -68,7 +68,7 @@ def normalize_pull_request(pull_request: dict[str, Any]) -> RawDocumentInput:
 
 
 def normalize_issue_comment(comment: dict[str, Any]) -> RawDocumentInput:
-    parent_number = _issue_number_from_url(comment.get("issue_url"))
+    parent_number = _resource_number_from_url(comment.get("issue_url"))
     parent_label = f" #{parent_number}" if parent_number is not None else ""
 
     return _build_document(
@@ -84,6 +84,39 @@ def normalize_issue_comment(comment: dict[str, Any]) -> RawDocumentInput:
             "parent_number": parent_number,
             "author_association": comment.get("author_association"),
             "minimized": comment.get("minimized", False),
+        },
+        created_at=comment.get("created_at"),
+        updated_at=comment.get("updated_at"),
+    )
+
+
+def normalize_pull_request_review_comment(comment: dict[str, Any]) -> RawDocumentInput:
+    pull_request_number = _resource_number_from_url(comment.get("pull_request_url"))
+    number_label = f" #{pull_request_number}" if pull_request_number is not None else ""
+    file_path = comment.get("path")
+    path_label = f" on {file_path}" if file_path else ""
+
+    return _build_document(
+        source_type="pull_request_review_comment",
+        source_id=str(comment["id"]),
+        source_number=None,
+        title=f"Review comment on pull request{number_label}{path_label}",
+        body=comment.get("body") or "",
+        html_url=comment["html_url"],
+        author=_nested_value(comment, "user", "login"),
+        state=None,
+        document_metadata={
+            "pull_request_number": pull_request_number,
+            "pull_request_review_id": comment.get("pull_request_review_id"),
+            "file_path": file_path,
+            "diff_hunk": comment.get("diff_hunk"),
+            "commit_id": comment.get("commit_id"),
+            "original_commit_id": comment.get("original_commit_id"),
+            "in_reply_to_id": comment.get("in_reply_to_id"),
+            "start_line": comment.get("start_line"),
+            "line": comment.get("line"),
+            "side": comment.get("side"),
+            "author_association": comment.get("author_association"),
         },
         created_at=comment.get("created_at"),
         updated_at=comment.get("updated_at"),
@@ -173,9 +206,9 @@ def _nested_value(data: dict[str, Any], *path: str) -> Any:
     return current
 
 
-def _issue_number_from_url(issue_url: Any) -> int | None:
-    if not isinstance(issue_url, str):
+def _resource_number_from_url(resource_url: Any) -> int | None:
+    if not isinstance(resource_url, str):
         return None
 
-    number_text = issue_url.rstrip("/").rsplit("/", maxsplit=1)[-1]
+    number_text = resource_url.rstrip("/").rsplit("/", maxsplit=1)[-1]
     return int(number_text) if number_text.isdigit() else None

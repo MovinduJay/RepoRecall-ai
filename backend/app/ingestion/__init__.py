@@ -5,6 +5,7 @@ from app.ingestion.normalizers import (
     normalize_issue,
     normalize_issue_comment,
     normalize_pull_request,
+    normalize_pull_request_review_comment,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "normalize_issue",
     "normalize_issue_comment",
     "normalize_pull_request",
+    "normalize_pull_request_review_comment",
 ]

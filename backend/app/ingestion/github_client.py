@@ -81,6 +81,15 @@ class GitHubApiClient:
             max_items=max_items,
         )
 
+    async def list_pull_request_review_comments(
+        self, owner: str, name: str, max_items: int
+    ) -> list[dict[str, Any]]:
+        return await self._collect_pages(
+            f"/repos/{owner}/{name}/pulls/comments",
+            params={"sort": "updated", "direction": "desc"},
+            max_items=max_items,
+        )
+
     async def list_commits(
         self, owner: str, name: str, max_items: int
     ) -> list[dict[str, Any]]:

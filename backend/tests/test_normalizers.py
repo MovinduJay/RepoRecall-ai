@@ -1,5 +1,6 @@
 from app.ingestion.normalizers import (
     normalize_commit,
+    normalize_commit_file,
     normalize_issue,
     normalize_issue_comment,
     normalize_pull_request,
@@ -132,6 +133,30 @@ def test_normalize_pull_request_file_keeps_patch_separate() -> None:
     assert file_input.previous_file_path == "app/old_consumer.py"
     assert file_input.status == "renamed"
     assert file_input.changes == 6
+    assert file_input.patch.startswith("@@ -20")
+    assert len(file_input.content_hash) == 64
+
+
+def test_normalize_commit_file_keeps_commit_and_patch_separate() -> None:
+    file_input = normalize_commit_file(
+        commit_sha="commit123",
+        file_item={
+            "sha": "blob456",
+            "filename": "app/consumer.py",
+            "status": "modified",
+            "additions": 2,
+            "deletions": 1,
+            "changes": 3,
+            "patch": "@@ -20 +20,2 @@\n-ack()\n+commit()\n+ack()",
+            "blob_url": "https://github.com/acme/billing/blob/commit123/app/consumer.py",
+            "raw_url": "https://github.com/acme/billing/raw/commit123/app/consumer.py",
+            "contents_url": "https://api.github.com/repos/acme/billing/contents/app/consumer.py",
+        },
+    )
+
+    assert file_input.commit_sha == "commit123"
+    assert file_input.file_sha == "blob456"
+    assert file_input.file_path == "app/consumer.py"
     assert file_input.patch.startswith("@@ -20")
     assert len(file_input.content_hash) == 64
 

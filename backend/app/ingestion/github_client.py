@@ -112,6 +112,40 @@ class GitHubApiClient:
             max_items=max_items,
         )
 
+    async def list_commit_files(
+        self,
+        owner: str,
+        name: str,
+        commit_sha: str,
+        max_items: int,
+    ) -> list[dict[str, Any]]:
+        results: list[dict[str, Any]] = []
+        page = 1
+
+        while len(results) < max_items:
+            response = await self._client.get(
+                f"/repos/{owner}/{name}/commits/{commit_sha}",
+                params={"per_page": 100, "page": page},
+            )
+            self._raise_for_status(response)
+            commit_data = response.json()
+
+            if not isinstance(commit_data, dict):
+                raise GitHubApiError("GitHub returned an unexpected commit response")
+
+            file_items = commit_data.get("files")
+            if not isinstance(file_items, list):
+                raise GitHubApiError("GitHub commit response did not contain a files list")
+
+            remaining = max_items - len(results)
+            results.extend(file_items[:remaining])
+
+            if len(file_items) < 100 or len(results) >= max_items:
+                break
+            page += 1
+
+        return results
+
     async def _collect_pages(
         self,
         path: str,

@@ -137,6 +137,32 @@ async def test_pagination_stops_at_requested_limit() -> None:
 
 
 @pytest.mark.asyncio
+async def test_commit_file_pagination_reads_nested_files_list() -> None:
+    requested_pages: list[int] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/repos/owner/repo/commits/abc123"
+        page = int(request.url.params["page"])
+        requested_pages.append(page)
+        files = [
+            {"sha": f"sha-{page}-{index}", "filename": f"file-{page}-{index}.py"}
+            for index in range(100)
+        ]
+        return httpx.Response(200, json={"sha": "abc123", "files": files}, request=request)
+
+    async with httpx.AsyncClient(
+        base_url="https://api.github.test", transport=httpx.MockTransport(handler)
+    ) as http_client:
+        client = GitHubApiClient(client=http_client)
+        files = await client.list_commit_files(
+            "owner", "repo", commit_sha="abc123", max_items=150
+        )
+
+    assert len(files) == 150
+    assert requested_pages == [1, 2]
+
+
+@pytest.mark.asyncio
 async def test_rate_limit_error_contains_reset_timestamp() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(

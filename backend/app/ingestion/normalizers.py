@@ -40,6 +40,23 @@ class PullRequestFileInput:
     content_hash: str
 
 
+@dataclass(frozen=True, slots=True)
+class CommitFileInput:
+    commit_sha: str
+    file_path: str
+    status: str
+    file_sha: str
+    previous_file_path: str | None
+    additions: int
+    deletions: int
+    changes: int
+    patch: str | None
+    blob_url: str
+    raw_url: str
+    contents_url: str
+    content_hash: str
+
+
 def normalize_issue(issue: dict[str, Any]) -> RawDocumentInput:
     labels = [label.get("name") for label in issue.get("labels", []) if label.get("name")]
     return _build_document(
@@ -161,6 +178,39 @@ def normalize_pull_request_file(
         file_path=file_item["filename"],
         status=file_item["status"],
         sha=file_item["sha"],
+        previous_file_path=file_item.get("previous_filename"),
+        additions=file_item.get("additions", 0),
+        deletions=file_item.get("deletions", 0),
+        changes=file_item.get("changes", 0),
+        patch=file_item.get("patch"),
+        blob_url=file_item["blob_url"],
+        raw_url=file_item["raw_url"],
+        contents_url=file_item["contents_url"],
+        content_hash=_content_hash(hash_payload),
+    )
+
+
+def normalize_commit_file(
+    commit_sha: str,
+    file_item: dict[str, Any],
+) -> CommitFileInput:
+    hash_payload = {
+        "commit_sha": commit_sha,
+        "file_path": file_item["filename"],
+        "status": file_item["status"],
+        "file_sha": file_item["sha"],
+        "previous_file_path": file_item.get("previous_filename"),
+        "additions": file_item.get("additions", 0),
+        "deletions": file_item.get("deletions", 0),
+        "changes": file_item.get("changes", 0),
+        "patch": file_item.get("patch"),
+    }
+
+    return CommitFileInput(
+        commit_sha=commit_sha,
+        file_path=file_item["filename"],
+        status=file_item["status"],
+        file_sha=file_item["sha"],
         previous_file_path=file_item.get("previous_filename"),
         additions=file_item.get("additions", 0),
         deletions=file_item.get("deletions", 0),

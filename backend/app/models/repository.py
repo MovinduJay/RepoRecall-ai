@@ -11,6 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
+    from app.models.commit_file import CommitFile
     from app.models.indexing_job import IndexingJob
     from app.models.pull_request_file import PullRequestFile
     from app.models.raw_document import RawDocument
@@ -38,5 +39,8 @@ class Repository(Base):
         back_populates="repository", cascade="all, delete-orphan"
     )
     pull_request_files: Mapped[list[PullRequestFile]] = relationship(
+        back_populates="repository", cascade="all, delete-orphan"
+    )
+    commit_files: Mapped[list[CommitFile]] = relationship(
         back_populates="repository", cascade="all, delete-orphan"
     )

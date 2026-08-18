@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.retrieval.diff_search import search_diff_hunks
 from app.retrieval.hybrid_search import search_hybrid
 from app.retrieval.lexical_search import search_lexically
+from app.retrieval.reranked_search import search_reranked
 from app.retrieval.vector_store import search_similar
 from app.schemas.search import (
     DiffSearchRequest,
@@ -11,6 +12,8 @@ from app.schemas.search import (
     HybridSearchResponse,
     LexicalSearchRequest,
     LexicalSearchResponse,
+    RerankedSearchRequest,
+    RerankedSearchResponse,
     SemanticSearchRequest,
     SemanticSearchResponse,
 )
@@ -50,6 +53,17 @@ async def hybrid_search(request: HybridSearchRequest) -> HybridSearchResponse:
     )
 
     return HybridSearchResponse(query=request.query, results=results)
+
+
+@router.post("/reranked", response_model=RerankedSearchResponse)
+async def reranked_search(request: RerankedSearchRequest) -> RerankedSearchResponse:
+    results = await search_reranked(
+        repository_id=request.repository_id,
+        query=request.query,
+        limit=request.limit,
+    )
+
+    return RerankedSearchResponse(query=request.query, results=results)
 
 
 @router.post("/diffs", response_model=DiffSearchResponse)

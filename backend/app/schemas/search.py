@@ -77,6 +77,19 @@ class HybridSearchResponse(BaseModel):
     results: list[HybridSearchResultRead]
 
 
+class RerankedSearchRequest(LexicalSearchRequest):
+    pass
+
+
+class RerankedSearchResultRead(HybridSearchResultRead):
+    rrf_score: float
+
+
+class RerankedSearchResponse(BaseModel):
+    query: str
+    results: list[RerankedSearchResultRead]
+
+
 class DiffSearchRequest(SemanticSearchRequest):
     pass
 

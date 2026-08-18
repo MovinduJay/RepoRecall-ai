@@ -12,15 +12,18 @@ from app.core.config import settings
 from app.db.session import dispose_engine, get_session_factory
 from app.ingestion.github_client import GitHubApiClient
 from app.ingestion.normalizers import (
+    CommitFileInput,
     PullRequestFileInput,
     RawDocumentInput,
     normalize_commit,
+    normalize_commit_file,
     normalize_issue,
     normalize_issue_comment,
     normalize_pull_request,
     normalize_pull_request_file,
     normalize_pull_request_review_comment,
 )
+from app.models.commit_file import CommitFile
 from app.models.indexing_job import IndexingJob
 from app.models.pull_request_file import PullRequestFile
 from app.models.raw_document import RawDocument
@@ -34,6 +37,8 @@ logger = logging.getLogger("reporecall.indexing-worker")
 
 PULL_REQUESTS_WITH_FILES_LIMIT = 10
 FILES_PER_PULL_REQUEST_LIMIT = 100
+COMMITS_WITH_FILES_LIMIT = 10
+FILES_PER_COMMIT_LIMIT = 100
 
 
 async def claim_next_job() -> uuid.UUID | None:
@@ -91,6 +96,12 @@ async def process_job(job_id: uuid.UUID) -> None:
             commits = await client.list_commits(
                 repository.owner, repository.name, job.max_items_per_source
             )
+            commit_files = await _fetch_commit_files(
+                client=client,
+                owner=repository.owner,
+                name=repository.name,
+                commits=commits,
+            )
 
             documents = [normalize_issue(item) for item in issues]
             documents.extend(normalize_pull_request(item) for item in pull_requests)
@@ -102,6 +113,7 @@ async def process_job(job_id: uuid.UUID) -> None:
 
             await _upsert_documents(repository.id, documents)
             await _upsert_pull_request_files(repository.id, pull_request_files)
+            await _upsert_commit_files(repository.id, commit_files)
             latest_sha = commits[0].get("sha") if commits else repository.latest_indexed_sha
             await _mark_completed(
                 job_id=job.id,
@@ -114,12 +126,14 @@ async def process_job(job_id: uuid.UUID) -> None:
                 latest_sha=latest_sha,
             )
             logger.info(
-                "Completed job %s for %s/%s: %s documents and %s pull request files",
+                "Completed job %s for %s/%s: %s documents, %s pull request files, "
+                "and %s commit files",
                 job.id,
                 repository.owner,
                 repository.name,
                 len(documents),
                 len(pull_request_files),
+                len(commit_files),
             )
         except Exception as exc:
             logger.exception("Indexing job %s failed", job.id)
@@ -239,6 +253,82 @@ async def _upsert_pull_request_files(
             "previous_file_path": statement.excluded.previous_file_path,
             "status": statement.excluded.status,
             "sha": statement.excluded.sha,
+            "additions": statement.excluded.additions,
+            "deletions": statement.excluded.deletions,
+            "changes": statement.excluded.changes,
+            "patch": statement.excluded.patch,
+            "blob_url": statement.excluded.blob_url,
+            "raw_url": statement.excluded.raw_url,
+            "contents_url": statement.excluded.contents_url,
+            "content_hash": statement.excluded.content_hash,
+            "ingested_at": datetime.now(UTC),
+        },
+    )
+
+    async with get_session_factory()() as session, session.begin():
+        await session.execute(statement)
+
+
+async def _fetch_commit_files(
+    *,
+    client: GitHubApiClient,
+    owner: str,
+    name: str,
+    commits: list[dict],
+) -> list[CommitFileInput]:
+    normalized_files: list[CommitFileInput] = []
+
+    for commit in commits[:COMMITS_WITH_FILES_LIMIT]:
+        commit_sha = commit.get("sha")
+        if not isinstance(commit_sha, str) or not commit_sha:
+            continue
+
+        file_items = await client.list_commit_files(
+            owner=owner,
+            name=name,
+            commit_sha=commit_sha,
+            max_items=FILES_PER_COMMIT_LIMIT,
+        )
+        normalized_files.extend(normalize_commit_file(commit_sha, item) for item in file_items)
+
+    return normalized_files
+
+
+async def _upsert_commit_files(
+    repository_id: uuid.UUID,
+    files: list[CommitFileInput],
+) -> None:
+    if not files:
+        return
+
+    values = [
+        {
+            "id": uuid.uuid4(),
+            "repository_id": repository_id,
+            "commit_sha": file.commit_sha,
+            "file_path": file.file_path,
+            "file_sha": file.file_sha,
+            "previous_file_path": file.previous_file_path,
+            "status": file.status,
+            "additions": file.additions,
+            "deletions": file.deletions,
+            "changes": file.changes,
+            "patch": file.patch,
+            "blob_url": file.blob_url,
+            "raw_url": file.raw_url,
+            "contents_url": file.contents_url,
+            "content_hash": file.content_hash,
+        }
+        for file in files
+    ]
+
+    statement = insert(CommitFile).values(values)
+    statement = statement.on_conflict_do_update(
+        constraint="uq_commit_file_repository_commit_path",
+        set_={
+            "file_sha": statement.excluded.file_sha,
+            "previous_file_path": statement.excluded.previous_file_path,
+            "status": statement.excluded.status,
             "additions": statement.excluded.additions,
             "deletions": statement.excluded.deletions,
             "changes": statement.excluded.changes,

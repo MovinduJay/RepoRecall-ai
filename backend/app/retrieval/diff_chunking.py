@@ -21,7 +21,7 @@ def chunk_pull_request_file(file_input: PullRequestFileInput) -> list[DiffChunk]
     if not file_input.patch:
         return []
 
-    hunks = _split_hunks(file_input.patch)
+    hunks = split_diff_hunks(file_input.patch)
 
     return [
         _create_diff_chunk(file_input=file_input, hunk_lines=hunk, hunk_index=index)
@@ -29,7 +29,7 @@ def chunk_pull_request_file(file_input: PullRequestFileInput) -> list[DiffChunk]
     ]
 
 
-def _split_hunks(patch: str) -> list[list[str]]:
+def split_diff_hunks(patch: str) -> list[list[str]]:
     hunks: list[list[str]] = []
     current_hunk: list[str] = []
 

@@ -38,6 +38,36 @@ async def test_fetch_pull_request_files_limits_pr_fan_out() -> None:
     )
 
 
+@pytest.mark.asyncio
+async def test_fetch_commit_files_limits_commit_fan_out() -> None:
+    client = AsyncMock()
+    client.list_commit_files.side_effect = [
+        [_github_file(index)] for index in range(indexing_worker.COMMITS_WITH_FILES_LIMIT)
+    ]
+    commits = [
+        {"sha": f"commit-{number}"}
+        for number in range(1, indexing_worker.COMMITS_WITH_FILES_LIMIT + 3)
+    ]
+
+    files = await indexing_worker._fetch_commit_files(
+        client=client,
+        owner="acme",
+        name="billing",
+        commits=commits,
+    )
+
+    assert len(files) == indexing_worker.COMMITS_WITH_FILES_LIMIT
+    assert client.list_commit_files.await_count == indexing_worker.COMMITS_WITH_FILES_LIMIT
+    assert files[0].commit_sha == "commit-1"
+    assert files[-1].commit_sha == f"commit-{indexing_worker.COMMITS_WITH_FILES_LIMIT}"
+    client.list_commit_files.assert_any_await(
+        owner="acme",
+        name="billing",
+        commit_sha="commit-1",
+        max_items=indexing_worker.FILES_PER_COMMIT_LIMIT,
+    )
+
+
 def _github_file(index: int) -> dict:
     return {
         "sha": f"sha-{index}",

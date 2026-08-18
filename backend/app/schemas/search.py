@@ -40,6 +40,43 @@ class SemanticSearchResponse(BaseModel):
     results: list[SemanticSearchResultRead]
 
 
+class LexicalSearchRequest(BaseModel):
+    repository_id: uuid.UUID
+    query: str = Field(min_length=1, max_length=10_000)
+    limit: int = Field(default=10, ge=1, le=50)
+
+    @field_validator("query")
+    @classmethod
+    def normalize_query(cls, value: str) -> str:
+        cleaned_query = value.strip()
+        if not cleaned_query:
+            raise ValueError("Query cannot be empty")
+        return cleaned_query
+
+
+class LexicalSearchResultRead(SemanticSearchResultRead):
+    pass
+
+
+class LexicalSearchResponse(BaseModel):
+    query: str
+    results: list[LexicalSearchResultRead]
+
+
+class HybridSearchRequest(LexicalSearchRequest):
+    pass
+
+
+class HybridSearchResultRead(SemanticSearchResultRead):
+    semantic_score: float | None
+    lexical_score: float | None
+
+
+class HybridSearchResponse(BaseModel):
+    query: str
+    results: list[HybridSearchResultRead]
+
+
 class DiffSearchRequest(SemanticSearchRequest):
     pass
 

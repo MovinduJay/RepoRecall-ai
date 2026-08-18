@@ -90,6 +90,7 @@ async def _delete_stale_diff_points(
     client: AsyncQdrantClient,
     repository_id: uuid.UUID,
     current_point_ids: set[str],
+    collection_name: str = DIFF_COLLECTION_NAME,
 ) -> int:
     stale_point_ids: list[str | int | uuid.UUID] = []
     offset: int | str | uuid.UUID | None = None
@@ -104,7 +105,7 @@ async def _delete_stale_diff_points(
 
     while True:
         records, next_offset = await client.scroll(
-            collection_name=DIFF_COLLECTION_NAME,
+            collection_name=collection_name,
             scroll_filter=repository_filter,
             limit=256,
             offset=offset,
@@ -121,7 +122,7 @@ async def _delete_stale_diff_points(
 
     if stale_point_ids:
         await client.delete(
-            collection_name=DIFF_COLLECTION_NAME,
+            collection_name=collection_name,
             points_selector=models.PointIdsList(points=stale_point_ids),
             wait=True,
         )

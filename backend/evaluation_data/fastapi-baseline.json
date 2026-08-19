@@ -1,0 +1,391 @@
+{
+  "repository_id": "0e0e181e-8f7e-4ecd-a5e0-0215a439af0c",
+  "dataset_repository": "fastapi/fastapi",
+  "k": 10,
+  "strategies": {
+    "dense": {
+      "strategy": "dense",
+      "aggregate": {
+        "query_count": 4,
+        "recall_at_k": 0.75,
+        "mean_reciprocal_rank": 0.375,
+        "ndcg_at_k": 0.47319731517859315,
+        "linked_fix_hit_rate": 0.75
+      },
+      "cases": [
+        {
+          "case_id": "issue-15764-apiroute-tags-type-checking",
+          "ranked_ids": [
+            "issue:15764",
+            "issue:15764",
+            "pull_request:16199",
+            "issue:15764",
+            "issue_comment:5300207308",
+            "issue:13175",
+            "issue:15503",
+            "pull_request:16159",
+            "issue:15503",
+            "issue:15401"
+          ],
+          "metrics": {
+            "recall_at_k": 1.0,
+            "reciprocal_rank": 0.5,
+            "ndcg_at_k": 0.6309297535714575,
+            "linked_fix_hit": true
+          }
+        },
+        {
+          "case_id": "issue-16010-frontend-dotted-route-fallback",
+          "ranked_ids": [
+            "issue:16010",
+            "issue:16010",
+            "issue:16010",
+            "issue:16010",
+            "issue:16010",
+            "pull_request:16198",
+            "issue_comment:5300204927",
+            "issue:15762",
+            "pull_request:16176",
+            "pull_request:16159"
+          ],
+          "metrics": {
+            "recall_at_k": 1.0,
+            "reciprocal_rank": 0.5,
+            "ndcg_at_k": 0.6309297535714575,
+            "linked_fix_hit": true
+          }
+        },
+        {
+          "case_id": "issue-11215-background-tasks-overwritten",
+          "ranked_ids": [
+            "issue:11215",
+            "pull_request:15217",
+            "pull_request:15217",
+            "commit:d62354434b2e508fe89024213b220ca8e67dea5e",
+            "pull_request_review_comment:3576947435",
+            "issue:15715",
+            "issue:15715",
+            "pull_request:16192",
+            "pull_request:16123",
+            "issue:15401"
+          ],
+          "metrics": {
+            "recall_at_k": 1.0,
+            "reciprocal_rank": 0.5,
+            "ndcg_at_k": 0.6309297535714575,
+            "linked_fix_hit": true
+          }
+        },
+        {
+          "case_id": "issue-617-application-lifetime-resources",
+          "ranked_ids": [
+            "issue:617",
+            "pull_request:15388",
+            "pull_request:16104",
+            "pull_request:16102",
+            "issue:11215",
+            "issue_comment:5296468812",
+            "pull_request:15217",
+            "pull_request_review_comment:3576947435",
+            "issue:15401",
+            "issue:16010"
+          ],
+          "metrics": {
+            "recall_at_k": 0.0,
+            "reciprocal_rank": 0.0,
+            "ndcg_at_k": 0.0,
+            "linked_fix_hit": false
+          }
+        }
+      ]
+    },
+    "bm25": {
+      "strategy": "bm25",
+      "aggregate": {
+        "query_count": 4,
+        "recall_at_k": 1.0,
+        "mean_reciprocal_rank": 0.8333333333333334,
+        "ndcg_at_k": 0.875,
+        "linked_fix_hit_rate": 1.0
+      },
+      "cases": [
+        {
+          "case_id": "issue-15764-apiroute-tags-type-checking",
+          "ranked_ids": [
+            "issue:15764",
+            "issue:15764",
+            "issue_comment:5300207308",
+            "pull_request:16199",
+            "issue:15764",
+            "issue:15762",
+            "pull_request:15077",
+            "issue:15503",
+            "issue:16037",
+            "pull_request:16176"
+          ],
+          "metrics": {
+            "recall_at_k": 1.0,
+            "reciprocal_rank": 0.3333333333333333,
+            "ndcg_at_k": 0.5,
+            "linked_fix_hit": true
+          }
+        },
+        {
+          "case_id": "issue-16010-frontend-dotted-route-fallback",
+          "ranked_ids": [
+            "pull_request:16198",
+            "issue:16010",
+            "issue_comment:5300204927",
+            "issue:16010",
+            "issue:16010",
+            "issue:16010",
+            "issue:16010",
+            "issue:15974",
+            "pull_request:16159",
+            "pull_request:16192"
+          ],
+          "metrics": {
+            "recall_at_k": 1.0,
+            "reciprocal_rank": 1.0,
+            "ndcg_at_k": 1.0,
+            "linked_fix_hit": true
+          }
+        },
+        {
+          "case_id": "issue-11215-background-tasks-overwritten",
+          "ranked_ids": [
+            "pull_request:15217",
+            "issue:11215",
+            "pull_request:15217",
+            "pull_request:16123",
+            "pull_request:16134",
+            "pull_request:15953",
+            "issue:15535",
+            "pull_request:15097",
+            "issue:15715",
+            "issue:16010"
+          ],
+          "metrics": {
+            "recall_at_k": 1.0,
+            "reciprocal_rank": 1.0,
+            "ndcg_at_k": 1.0,
+            "linked_fix_hit": true
+          }
+        },
+        {
+          "case_id": "issue-617-application-lifetime-resources",
+          "ranked_ids": [
+            "pull_request:15097",
+            "issue:617",
+            "pull_request:16130",
+            "pull_request:15388",
+            "pull_request:15307",
+            "issue:3317",
+            "issue:16010",
+            "pull_request:14928",
+            "issue:608",
+            "issue:11215"
+          ],
+          "metrics": {
+            "recall_at_k": 1.0,
+            "reciprocal_rank": 1.0,
+            "ndcg_at_k": 1.0,
+            "linked_fix_hit": true
+          }
+        }
+      ]
+    },
+    "hybrid_rrf": {
+      "strategy": "hybrid_rrf",
+      "aggregate": {
+        "query_count": 4,
+        "recall_at_k": 0.75,
+        "mean_reciprocal_rank": 0.375,
+        "ndcg_at_k": 0.47319731517859315,
+        "linked_fix_hit_rate": 0.75
+      },
+      "cases": [
+        {
+          "case_id": "issue-15764-apiroute-tags-type-checking",
+          "ranked_ids": [
+            "issue:15764",
+            "issue:15764",
+            "pull_request:16199",
+            "issue_comment:5300207308",
+            "issue:15764",
+            "issue:15762",
+            "issue:15503",
+            "pull_request:15077",
+            "issue:15503",
+            "pull_request:15307"
+          ],
+          "metrics": {
+            "recall_at_k": 1.0,
+            "reciprocal_rank": 0.5,
+            "ndcg_at_k": 0.6309297535714575,
+            "linked_fix_hit": true
+          }
+        },
+        {
+          "case_id": "issue-16010-frontend-dotted-route-fallback",
+          "ranked_ids": [
+            "issue:16010",
+            "issue:16010",
+            "pull_request:16198",
+            "issue:16010",
+            "issue_comment:5300204927",
+            "issue:16010",
+            "issue:16010",
+            "pull_request:16159",
+            "issue:15762",
+            "pull_request:16176"
+          ],
+          "metrics": {
+            "recall_at_k": 1.0,
+            "reciprocal_rank": 0.5,
+            "ndcg_at_k": 0.6309297535714575,
+            "linked_fix_hit": true
+          }
+        },
+        {
+          "case_id": "issue-11215-background-tasks-overwritten",
+          "ranked_ids": [
+            "issue:11215",
+            "pull_request:15217",
+            "pull_request:15217",
+            "pull_request:16123",
+            "issue:15715",
+            "pull_request:16192",
+            "pull_request:16134",
+            "issue:15401",
+            "pull_request_review_comment:3576947435",
+            "pull_request:15097"
+          ],
+          "metrics": {
+            "recall_at_k": 1.0,
+            "reciprocal_rank": 0.5,
+            "ndcg_at_k": 0.6309297535714575,
+            "linked_fix_hit": true
+          }
+        },
+        {
+          "case_id": "issue-617-application-lifetime-resources",
+          "ranked_ids": [
+            "issue:617",
+            "pull_request:15388",
+            "issue:11215",
+            "pull_request:16102",
+            "pull_request:16130",
+            "issue_comment:5296468812",
+            "pull_request:15307",
+            "issue:608",
+            "issue:3317",
+            "pull_request:14928"
+          ],
+          "metrics": {
+            "recall_at_k": 0.0,
+            "reciprocal_rank": 0.0,
+            "ndcg_at_k": 0.0,
+            "linked_fix_hit": false
+          }
+        }
+      ]
+    },
+    "hybrid_reranked": {
+      "strategy": "hybrid_reranked",
+      "aggregate": {
+        "query_count": 4,
+        "recall_at_k": 1.0,
+        "mean_reciprocal_rank": 0.5416666666666666,
+        "ndcg_at_k": 0.6577324383928644,
+        "linked_fix_hit_rate": 1.0
+      },
+      "cases": [
+        {
+          "case_id": "issue-15764-apiroute-tags-type-checking",
+          "ranked_ids": [
+            "issue:15764",
+            "issue:15764",
+            "issue_comment:5300207308",
+            "pull_request:16199",
+            "issue:15764",
+            "issue:15503",
+            "issue:15762",
+            "issue:15503",
+            "pull_request:16176",
+            "issue:13175"
+          ],
+          "metrics": {
+            "recall_at_k": 1.0,
+            "reciprocal_rank": 0.3333333333333333,
+            "ndcg_at_k": 0.5,
+            "linked_fix_hit": true
+          }
+        },
+        {
+          "case_id": "issue-16010-frontend-dotted-route-fallback",
+          "ranked_ids": [
+            "issue:16010",
+            "issue:16010",
+            "issue:16010",
+            "pull_request:16198",
+            "issue_comment:5300204927",
+            "issue:16010",
+            "issue:16010",
+            "issue:15974",
+            "issue:15974",
+            "pull_request:16159"
+          ],
+          "metrics": {
+            "recall_at_k": 1.0,
+            "reciprocal_rank": 0.5,
+            "ndcg_at_k": 0.6309297535714575,
+            "linked_fix_hit": true
+          }
+        },
+        {
+          "case_id": "issue-11215-background-tasks-overwritten",
+          "ranked_ids": [
+            "pull_request:15217",
+            "issue:11215",
+            "pull_request:15217",
+            "issue:15715",
+            "pull_request_review_comment:3576947435",
+            "pull_request:15937",
+            "pull_request:15097",
+            "pull_request:15953",
+            "pull_request:16123",
+            "issue:15535"
+          ],
+          "metrics": {
+            "recall_at_k": 1.0,
+            "reciprocal_rank": 1.0,
+            "ndcg_at_k": 1.0,
+            "linked_fix_hit": true
+          }
+        },
+        {
+          "case_id": "issue-617-application-lifetime-resources",
+          "ranked_ids": [
+            "issue:617",
+            "pull_request:15388",
+            "pull_request:15097",
+            "pull_request:15307",
+            "issue:15713",
+            "pull_request:15077",
+            "pull_request:16130",
+            "issue:13399",
+            "pull_request:16192",
+            "issue:15401"
+          ],
+          "metrics": {
+            "recall_at_k": 1.0,
+            "reciprocal_rank": 0.3333333333333333,
+            "ndcg_at_k": 0.5,
+            "linked_fix_hit": true
+          }
+        }
+      ]
+    }
+  }
+}

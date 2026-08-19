@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "repository": "fastapi/fastapi",
+  "cases": [
+    {
+      "case_id": "issue-15764-apiroute-tags-type-checking",
+      "query": "0.137.0: APIRoute.tags invisible to type checkers in generate_unique_id_function. The documented generate_unique_id_function pattern reads route.tags, but type checkers report that APIRoute has no attribute tags even though the code works at runtime. APIRoute no longer carries a class-level tags annotation after an internal refactor.",
+      "relevant_evidence": [
+        {
+          "source_type": "pull_request",
+          "source_id": "16199"
+        }
+      ],
+      "notes": "Verified from the indexed PR #16199 body, which explicitly declares Fixes #15764."
+    },
+    {
+      "case_id": "issue-16010-frontend-dotted-route-fallback",
+      "query": "app.frontend() with fallback=index.html returns 404 for client-side routes that have a dot in the last path segment, such as /users/john.doe or /v/1.2.3. Normal browser navigation to a path without a dot serves index.html, while dotted routes incorrectly return 404.",
+      "relevant_evidence": [
+        {
+          "source_type": "pull_request",
+          "source_id": "16198"
+        }
+      ],
+      "notes": "Verified from the indexed PR #16198 body, which explicitly declares Fixes #16010."
+    },
+    {
+      "case_id": "issue-11215-background-tasks-overwritten",
+      "query": "A custom Response with its own BackgroundTask silently overwrites tasks added through the injected BackgroundTasks dependency. The injected task is never executed when Response(background=BackgroundTask(...)) is returned, which is confusing and should at least be documented.",
+      "relevant_evidence": [
+        {
+          "source_type": "pull_request",
+          "source_id": "15217"
+        }
+      ],
+      "notes": "Verified from the indexed PR #15217 body, which explicitly declares Closes #11215."
+    },
+    {
+      "case_id": "issue-617-application-lifetime-resources",
+      "query": "FastAPI startup and shutdown events are underdeveloped for resources with side effects such as database connections. Application resources should be initialized once at startup, reused by requests, and cleaned up reliably at shutdown instead of being created globally at import time.",
+      "relevant_evidence": [
+        {
+          "source_type": "pull_request",
+          "source_id": "15097"
+        }
+      ],
+      "notes": "Verified from the indexed PR #15097 body, which explicitly declares Closes #617."
+    }
+  ]
+}

@@ -21,3 +21,10 @@ results, because that would make the evaluation circular.
   ]
 }
 ```
+
+Run all retrieval strategies and save the detailed report:
+
+```bash
+python -m app.scripts.evaluate_retrieval REPOSITORY_UUID evaluation_data/dataset.json \
+  --k 10 --output evaluation_data/results.json
+```

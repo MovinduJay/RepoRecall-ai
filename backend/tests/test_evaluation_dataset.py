@@ -79,6 +79,16 @@ def test_dataset_reports_invalid_json_and_missing_file(tmp_path: Path) -> None:
         load_evaluation_dataset(tmp_path / "missing.json")
 
 
+def test_curated_fastapi_dataset_is_valid() -> None:
+    dataset_path = Path(__file__).parents[1] / "evaluation_data" / "fastapi.json"
+
+    dataset = load_evaluation_dataset(dataset_path)
+
+    assert dataset.repository == "fastapi/fastapi"
+    assert len(dataset.cases) == 4
+    assert all(case.relevant_ids for case in dataset.cases)
+
+
 def _write_dataset(tmp_path: Path, content: dict[str, object]) -> Path:
     path = tmp_path / "evaluation.json"
     path.write_text(json.dumps(content), encoding="utf-8")

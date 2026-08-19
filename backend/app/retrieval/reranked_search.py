@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import uuid
 
+from app.retrieval.diversification import diversify_by_source
 from app.retrieval.hybrid_search import search_hybrid
 from app.retrieval.reranker import RerankedSearchResult, rerank_candidates
 
@@ -30,9 +31,10 @@ async def search_reranked(
         query=query,
         limit=candidate_limit,
     )
-    return await asyncio.to_thread(
+    reranked_results = await asyncio.to_thread(
         rerank_candidates,
         query,
         candidates,
-        limit=limit,
+        limit=candidate_limit,
     )
+    return diversify_by_source(reranked_results, limit=limit)

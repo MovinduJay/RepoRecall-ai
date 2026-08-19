@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import uuid
 
+from app.retrieval.diversification import diversify_by_source
 from app.retrieval.lexical_search import search_lexically
 from app.retrieval.rrf import HybridSearchResult, reciprocal_rank_fusion
 from app.retrieval.vector_store import search_similar
@@ -39,8 +40,9 @@ async def search_hybrid(
         ),
     )
 
-    return reciprocal_rank_fusion(
+    fused_results = reciprocal_rank_fusion(
         semantic_results,
         lexical_results,
-        limit=limit,
+        limit=candidate_limit * 2,
     )
+    return diversify_by_source(fused_results, limit=limit)

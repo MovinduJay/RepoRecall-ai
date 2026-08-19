@@ -31,7 +31,7 @@ async def test_search_reranked_loads_wider_candidate_set_and_runs_reranker(
         query="database timeout",
         limit=20,
     )
-    rerank.assert_called_once_with("database timeout", candidates, limit=5)
+    rerank.assert_called_once_with("database timeout", candidates, limit=20)
     assert results == expected
 
 

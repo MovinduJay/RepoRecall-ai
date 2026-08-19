@@ -209,15 +209,15 @@
           "case_id": "issue-15764-apiroute-tags-type-checking",
           "ranked_ids": [
             "issue:15764",
-            "issue:15764",
             "pull_request:16199",
             "issue_comment:5300207308",
-            "issue:15764",
             "issue:15762",
             "issue:15503",
             "pull_request:15077",
-            "issue:15503",
-            "pull_request:15307"
+            "pull_request:15307",
+            "pull_request:16176",
+            "issue:13175",
+            "issue:16010"
           ],
           "metrics": {
             "recall_at_k": 1.0,
@@ -230,15 +230,15 @@
           "case_id": "issue-16010-frontend-dotted-route-fallback",
           "ranked_ids": [
             "issue:16010",
-            "issue:16010",
             "pull_request:16198",
-            "issue:16010",
             "issue_comment:5300204927",
-            "issue:16010",
-            "issue:16010",
             "pull_request:16159",
             "issue:15762",
-            "pull_request:16176"
+            "pull_request:16176",
+            "pull_request:15307",
+            "issue:15974",
+            "pull_request:16136",
+            "pull_request:16192"
           ],
           "metrics": {
             "recall_at_k": 1.0,
@@ -252,14 +252,14 @@
           "ranked_ids": [
             "issue:11215",
             "pull_request:15217",
-            "pull_request:15217",
             "pull_request:16123",
             "issue:15715",
             "pull_request:16192",
             "pull_request:16134",
             "issue:15401",
             "pull_request_review_comment:3576947435",
-            "pull_request:15097"
+            "pull_request:15097",
+            "pull_request:15937"
           ],
           "metrics": {
             "recall_at_k": 1.0,
@@ -305,15 +305,15 @@
           "case_id": "issue-15764-apiroute-tags-type-checking",
           "ranked_ids": [
             "issue:15764",
-            "issue:15764",
             "issue_comment:5300207308",
             "pull_request:16199",
-            "issue:15764",
-            "issue:15503",
             "issue:15762",
             "issue:15503",
-            "pull_request:16176",
-            "issue:13175"
+            "issue:13175",
+            "pull_request:14928",
+            "issue:15401",
+            "pull_request:15077",
+            "issue:15974"
           ],
           "metrics": {
             "recall_at_k": 1.0,
@@ -326,15 +326,15 @@
           "case_id": "issue-16010-frontend-dotted-route-fallback",
           "ranked_ids": [
             "issue:16010",
-            "issue:16010",
-            "issue:16010",
             "pull_request:16198",
             "issue_comment:5300204927",
-            "issue:16010",
-            "issue:16010",
             "issue:15974",
-            "issue:15974",
-            "pull_request:16159"
+            "pull_request:16159",
+            "pull_request:16102",
+            "pull_request:16176",
+            "issue:15188",
+            "issue:15764",
+            "issue:10180"
           ],
           "metrics": {
             "recall_at_k": 1.0,
@@ -348,14 +348,14 @@
           "ranked_ids": [
             "pull_request:15217",
             "issue:11215",
-            "pull_request:15217",
             "issue:15715",
-            "pull_request_review_comment:3576947435",
             "pull_request:15937",
+            "pull_request_review_comment:3576947435",
             "pull_request:15097",
             "pull_request:15953",
             "pull_request:16123",
-            "issue:15535"
+            "issue:15535",
+            "pull_request:15307"
           ],
           "metrics": {
             "recall_at_k": 1.0,
@@ -375,8 +375,8 @@
             "pull_request:15077",
             "pull_request:16130",
             "issue:13399",
-            "pull_request:16192",
-            "issue:15401"
+            "issue:15715",
+            "pull_request:16192"
           ],
           "metrics": {
             "recall_at_k": 1.0,

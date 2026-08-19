@@ -38,16 +38,42 @@ async def test_search_hybrid_retrieves_candidates_and_fuses_results(
 
 
 @pytest.mark.asyncio
-async def test_search_hybrid_caps_candidate_pool() -> None:
+async def test_search_hybrid_caps_candidate_pool(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     semantic_search = AsyncMock(return_value=[])
     lexical_search = AsyncMock(return_value=[])
-    hybrid_search.search_similar = semantic_search
-    hybrid_search.search_lexically = lexical_search
+    monkeypatch.setattr(hybrid_search, "search_similar", semantic_search)
+    monkeypatch.setattr(hybrid_search, "search_lexically", lexical_search)
 
     await hybrid_search.search_hybrid(uuid.uuid4(), "timeout", limit=50)
 
     assert semantic_search.await_args.kwargs["limit"] == 50
     assert lexical_search.await_args.kwargs["limit"] == 50
+
+
+@pytest.mark.asyncio
+async def test_search_hybrid_returns_distinct_source_documents(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    first_chunk = _semantic_result("same", 0.9)
+    second_chunk = SemanticSearchResult(
+        **{**vars(first_chunk), "score": 0.8, "chunk_index": 1}
+    )
+    other_document = _semantic_result("other", 0.7)
+    semantic_search = AsyncMock(
+        return_value=[first_chunk, second_chunk, other_document]
+    )
+    lexical_search = AsyncMock(return_value=[])
+    monkeypatch.setattr(hybrid_search, "search_similar", semantic_search)
+    monkeypatch.setattr(hybrid_search, "search_lexically", lexical_search)
+
+    results = await hybrid_search.search_hybrid(uuid.uuid4(), "timeout", limit=2)
+
+    assert [result.raw_document_id for result in results] == [
+        "document-same",
+        "document-other",
+    ]
 
 
 def _semantic_result(source_id: str, score: float) -> SemanticSearchResult:

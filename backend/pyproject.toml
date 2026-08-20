@@ -21,6 +21,7 @@ dependencies = [
   "uvicorn[standard]>=0.35,<1",
   "fastembed",
   "flashrank>=0.2,<1",
+  "langgraph>=1.0,<2",
 ]
 
 [project.optional-dependencies]

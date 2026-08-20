@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, NotRequired, Required, TypedDict
+from typing import Any, Literal, NotRequired, Required, TypedDict
 
 from app.retrieval.reranker import RerankedSearchResult
 
@@ -15,6 +15,7 @@ class InvestigationState(TypedDict, total=False):
     retrieved_results: list[RerankedSearchResult]
     confidence: float
     retry_count: int
+    decision: NotRequired[Literal["sufficient", "rewrite", "abstain"]]
     answer: NotRequired[str | None]
     citations: list[str]
 

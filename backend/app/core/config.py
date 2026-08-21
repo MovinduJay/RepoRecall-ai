@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     github_max_items_per_source: int = Field(default=100, ge=1, le=500)
     worker_poll_interval_seconds: float = Field(default=3.0, gt=0)
 
+    openai_api_key: str | None = Field(default=None, repr=False)
+    openai_model: str = "gpt-5.6-luna"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

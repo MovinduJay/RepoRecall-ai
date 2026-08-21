@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -88,6 +89,23 @@ class RerankedSearchResultRead(HybridSearchResultRead):
 class RerankedSearchResponse(BaseModel):
     query: str
     results: list[RerankedSearchResultRead]
+
+
+class InvestigationRequest(LexicalSearchRequest):
+    pass
+
+
+class InvestigationResponse(BaseModel):
+    query: str
+    decision: Literal["sufficient", "rewrite", "abstain"]
+    confidence: float
+    retry_count: int
+    extracted_errors: list[str]
+    extracted_paths: list[str]
+    rewritten_queries: list[str]
+    evidence: list[RerankedSearchResultRead]
+    answer: str | None
+    citations: list[str]
 
 
 class DiffSearchRequest(SemanticSearchRequest):

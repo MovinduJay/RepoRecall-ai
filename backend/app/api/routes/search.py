@@ -10,6 +10,8 @@ from app.schemas.search import (
     DiffSearchResponse,
     HybridSearchRequest,
     HybridSearchResponse,
+    InvestigationRequest,
+    InvestigationResponse,
     LexicalSearchRequest,
     LexicalSearchResponse,
     RerankedSearchRequest,
@@ -17,6 +19,7 @@ from app.schemas.search import (
     SemanticSearchRequest,
     SemanticSearchResponse,
 )
+from app.workflow.service import run_investigation
 
 router = APIRouter(prefix="/search", tags=["search"])
 
@@ -64,6 +67,26 @@ async def reranked_search(request: RerankedSearchRequest) -> RerankedSearchRespo
     )
 
     return RerankedSearchResponse(query=request.query, results=results)
+
+
+@router.post("/investigate", response_model=InvestigationResponse)
+async def investigate(request: InvestigationRequest) -> InvestigationResponse:
+    state = await run_investigation(
+        repository_id=request.repository_id,
+        query=request.query,
+    )
+    return InvestigationResponse(
+        query=state["query"],
+        decision=state["decision"],
+        confidence=state["confidence"],
+        retry_count=state["retry_count"],
+        extracted_errors=state["extracted_errors"],
+        extracted_paths=state["extracted_paths"],
+        rewritten_queries=state["rewritten_queries"],
+        evidence=state["retrieved_results"],
+        answer=state.get("answer"),
+        citations=state["citations"],
+    )
 
 
 @router.post("/diffs", response_model=DiffSearchResponse)

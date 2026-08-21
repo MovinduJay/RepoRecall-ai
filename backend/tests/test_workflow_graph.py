@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from app.generation.provider import GeneratedAnswer
 from app.retrieval.reranker import RerankedSearchResult
 from app.workflow import graph
 from app.workflow.state import create_initial_state
@@ -25,6 +26,30 @@ async def test_graph_ends_with_sufficient_evidence_without_retry(
     assert result["extracted_errors"] == ["TimeoutError"]
     assert result["extracted_paths"] == ["app/db.py"]
     assert retrieve.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_graph_generates_answer_only_on_sufficient_branch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    evidence = _result(score=0.8)
+    retrieve = AsyncMock(return_value={"retrieved_results": [evidence]})
+    provider = AsyncMock()
+    provider.generate.return_value = GeneratedAnswer(
+        answer="PR #10 increased the connection timeout.",
+        citations=[evidence.html_url],
+    )
+    monkeypatch.setattr(graph, "retrieve_candidates", retrieve)
+    workflow = graph.build_investigation_graph(answer_provider=provider)
+
+    result = await workflow.ainvoke(
+        create_initial_state("TimeoutError in app/db.py", str(uuid.uuid4()))
+    )
+
+    assert result["decision"] == "sufficient"
+    assert result["answer"] == "PR #10 increased the connection timeout."
+    assert result["citations"] == [evidence.html_url]
+    provider.generate.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -55,8 +80,9 @@ async def test_graph_abstains_after_retry_remains_weak(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     retrieve = AsyncMock(return_value={"retrieved_results": []})
+    provider = AsyncMock()
     monkeypatch.setattr(graph, "retrieve_candidates", retrieve)
-    workflow = graph.build_investigation_graph()
+    workflow = graph.build_investigation_graph(answer_provider=provider)
 
     result = await workflow.ainvoke(
         create_initial_state("Unknown failure", str(uuid.uuid4()))
@@ -67,6 +93,7 @@ async def test_graph_abstains_after_retry_remains_weak(
     assert result["answer"] == graph.ABSTENTION_MESSAGE
     assert result["citations"] == []
     assert retrieve.await_count == 2
+    provider.generate.assert_not_awaited()
 
 
 def _result(*, score: float) -> RerankedSearchResult:

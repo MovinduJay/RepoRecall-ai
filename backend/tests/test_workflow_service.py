@@ -1,5 +1,5 @@
 import uuid
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
@@ -24,3 +24,32 @@ async def test_run_investigation_invokes_cached_graph(
     invoked_state = workflow.ainvoke.await_args.args[0]
     assert invoked_state["query"] == "database timeout"
     assert invoked_state["repository_id"] == str(repository_id)
+
+
+def test_answer_provider_is_optional_without_api_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(service.settings, "openai_api_key", None)
+    service._get_answer_provider.cache_clear()
+
+    try:
+        assert service._get_answer_provider() is None
+    finally:
+        service._get_answer_provider.cache_clear()
+
+
+def test_answer_provider_uses_configured_model(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    provider = object()
+    create_provider = Mock(return_value=provider)
+    monkeypatch.setattr(service.settings, "openai_api_key", "test-key")
+    monkeypatch.setattr(service.settings, "openai_model", "test-model")
+    monkeypatch.setattr(service, "OpenAIAnswerProvider", create_provider)
+    service._get_answer_provider.cache_clear()
+
+    try:
+        assert service._get_answer_provider() is provider
+        create_provider.assert_called_once_with(api_key="test-key", model="test-model")
+    finally:
+        service._get_answer_provider.cache_clear()

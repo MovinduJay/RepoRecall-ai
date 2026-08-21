@@ -4,6 +4,9 @@ import uuid
 from functools import lru_cache
 from typing import Any
 
+from app.core.config import settings
+from app.generation.openai_provider import OpenAIAnswerProvider
+from app.generation.provider import AnswerProvider
 from app.workflow.graph import build_investigation_graph
 from app.workflow.state import InvestigationState, create_initial_state
 
@@ -21,4 +24,14 @@ async def run_investigation(
 
 @lru_cache(maxsize=1)
 def _get_investigation_graph() -> Any:
-    return build_investigation_graph()
+    return build_investigation_graph(answer_provider=_get_answer_provider())
+
+
+@lru_cache(maxsize=1)
+def _get_answer_provider() -> AnswerProvider | None:
+    if not settings.openai_api_key:
+        return None
+    return OpenAIAnswerProvider(
+        api_key=settings.openai_api_key,
+        model=settings.openai_model,
+    )

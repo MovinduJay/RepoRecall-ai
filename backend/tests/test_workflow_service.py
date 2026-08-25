@@ -30,6 +30,7 @@ def test_answer_provider_is_optional_without_api_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(service.settings, "openai_api_key", None)
+    monkeypatch.setattr(service.settings, "ollama_base_url", None)
     service._get_answer_provider.cache_clear()
 
     try:
@@ -51,5 +52,26 @@ def test_answer_provider_uses_configured_model(
     try:
         assert service._get_answer_provider() is provider
         create_provider.assert_called_once_with(api_key="test-key", model="test-model")
+    finally:
+        service._get_answer_provider.cache_clear()
+
+
+def test_answer_provider_uses_ollama_without_openai_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    provider = object()
+    create_provider = Mock(return_value=provider)
+    monkeypatch.setattr(service.settings, "openai_api_key", None)
+    monkeypatch.setattr(service.settings, "ollama_base_url", "http://ollama:11434")
+    monkeypatch.setattr(service.settings, "ollama_model", "test-local-model")
+    monkeypatch.setattr(service, "OllamaAnswerProvider", create_provider)
+    service._get_answer_provider.cache_clear()
+
+    try:
+        assert service._get_answer_provider() is provider
+        create_provider.assert_called_once_with(
+            base_url="http://ollama:11434",
+            model="test-local-model",
+        )
     finally:
         service._get_answer_provider.cache_clear()

@@ -5,6 +5,7 @@ from functools import lru_cache
 from typing import Any
 
 from app.core.config import settings
+from app.generation.ollama_provider import OllamaAnswerProvider
 from app.generation.openai_provider import OpenAIAnswerProvider
 from app.generation.provider import AnswerProvider
 from app.workflow.graph import build_investigation_graph
@@ -29,9 +30,14 @@ def _get_investigation_graph() -> Any:
 
 @lru_cache(maxsize=1)
 def _get_answer_provider() -> AnswerProvider | None:
-    if not settings.openai_api_key:
-        return None
-    return OpenAIAnswerProvider(
-        api_key=settings.openai_api_key,
-        model=settings.openai_model,
-    )
+    if settings.openai_api_key:
+        return OpenAIAnswerProvider(
+            api_key=settings.openai_api_key,
+            model=settings.openai_model,
+        )
+    if settings.ollama_base_url:
+        return OllamaAnswerProvider(
+            base_url=settings.ollama_base_url,
+            model=settings.ollama_model,
+        )
+    return None

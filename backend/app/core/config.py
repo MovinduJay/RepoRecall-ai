@@ -22,6 +22,8 @@ class Settings(BaseSettings):
 
     openai_api_key: str | None = Field(default=None, repr=False)
     openai_model: str = "gpt-5.6-luna"
+    ollama_base_url: str | None = None
+    ollama_model: str = "qwen2.5:3b"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

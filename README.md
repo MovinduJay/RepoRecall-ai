@@ -13,9 +13,10 @@ The current version can:
 - fetch issues, pull requests, and commits through the GitHub REST API;
 - normalize and upsert the retrieved records into PostgreSQL;
 - track indexing progress and failures;
-- list the raw documents collected for a repository.
-
-Vector embeddings, hybrid retrieval, reranking, and the LangGraph investigation workflow come next.
+- index and search engineering history with Qdrant;
+- combine semantic and keyword retrieval, rerank results, and diversify sources;
+- run a bounded LangGraph investigation with evidence-grounded citations;
+- generate answers with OpenAI or a free local Ollama model.
 
 ## Run locally
 
@@ -26,6 +27,24 @@ docker compose up --build
 ```
 
 Open Swagger at `http://localhost:8000/docs`.
+
+### Free local answer generation
+
+Install Ollama on the host, then download the default lightweight model:
+
+```bash
+ollama pull qwen2.5:3b
+```
+
+Configure the Docker API to reach Ollama in `.env`:
+
+```env
+OLLAMA_BASE_URL=http://host.docker.internal:11434
+OLLAMA_MODEL=qwen2.5:3b
+```
+
+No OpenAI key is required. Leave `OPENAI_API_KEY` empty; when both providers are
+configured, OpenAI takes precedence.
 
 ## Basic flow
 
@@ -45,5 +64,5 @@ FastAPI API ───────── PostgreSQL
           |
      Python worker ───── GitHub REST API
 
-Qdrant is already part of the environment and will store embeddings in the next milestone.
+Qdrant stores document embeddings used by semantic and hybrid retrieval.
 ```

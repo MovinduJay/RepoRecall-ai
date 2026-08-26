@@ -19,6 +19,7 @@ def test_investigation_endpoint_returns_workflow_state_and_evidence() -> None:
             "extracted_errors": ["TimeoutError"],
             "extracted_paths": ["app/db.py"],
             "retrieved_results": [_result(repository_id)],
+            "generation_error": "Local generation is unavailable.",
         }
     )
     run_investigation = AsyncMock(return_value=state)
@@ -43,6 +44,7 @@ def test_investigation_endpoint_returns_workflow_state_and_evidence() -> None:
     assert body["extracted_errors"] == ["TimeoutError"]
     assert body["evidence"][0]["source_number"] == 10
     assert body["answer"] is None
+    assert body["generation_error"] == "Local generation is unavailable."
     run_investigation.assert_awaited_once_with(
         repository_id=repository_id,
         query="TimeoutError in app/db.py",

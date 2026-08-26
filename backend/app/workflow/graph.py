@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from langgraph.graph import END, START, StateGraph
@@ -15,6 +16,10 @@ from app.workflow.state import InvestigationState
 ABSTENTION_MESSAGE = (
     "RepoRecall could not find sufficiently reliable repository evidence for this query."
 )
+GENERATION_FAILURE_MESSAGE = (
+    "Answer generation is temporarily unavailable. Retrieved evidence is still included."
+)
+logger = logging.getLogger(__name__)
 
 
 def abstain(_: InvestigationState) -> dict[str, Any]:
@@ -36,8 +41,16 @@ def build_investigation_graph(
 
         async def generate_grounded_answer(
             state: InvestigationState,
-        ) -> dict[str, str | list[str]]:
-            return await generate_answer(state, answer_provider)
+        ) -> dict[str, str | list[str] | None]:
+            try:
+                return await generate_answer(state, answer_provider)
+            except Exception:
+                logger.exception("Evidence-grounded answer generation failed")
+                return {
+                    "answer": None,
+                    "citations": [],
+                    "generation_error": GENERATION_FAILURE_MESSAGE,
+                }
 
         builder.add_node("generate_answer", generate_grounded_answer)
 

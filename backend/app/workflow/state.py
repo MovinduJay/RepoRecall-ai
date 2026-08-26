@@ -18,6 +18,7 @@ class InvestigationState(TypedDict, total=False):
     decision: NotRequired[Literal["sufficient", "rewrite", "abstain"]]
     answer: NotRequired[str | None]
     citations: list[str]
+    generation_error: NotRequired[str | None]
 
 
 def create_initial_state(query: str, repository_id: str) -> InvestigationState:
@@ -40,4 +41,5 @@ def create_initial_state(query: str, repository_id: str) -> InvestigationState:
         retry_count=0,
         answer=None,
         citations=[],
+        generation_error=None,
     )

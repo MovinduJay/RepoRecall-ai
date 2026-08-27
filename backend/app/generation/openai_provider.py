@@ -22,7 +22,7 @@ class OpenAIAnswerProvider:
         self,
         *,
         api_key: str | None = None,
-        model: str = "gpt-5.6-luna",
+        model: str = "gpt-5-nano",
         client: Any | None = None,
     ) -> None:
         if client is None and not api_key:
@@ -36,6 +36,7 @@ class OpenAIAnswerProvider:
             instructions=request.system_instruction,
             input=_build_user_input(request),
             text_format=StructuredGeneratedAnswer,
+            reasoning={"effort": "minimal"},
             store=False,
         )
         parsed = response.output_parsed

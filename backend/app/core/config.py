@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     worker_poll_interval_seconds: float = Field(default=3.0, gt=0)
 
     openai_api_key: str | None = Field(default=None, repr=False)
-    openai_model: str = "gpt-5.6-luna"
+    openai_model: str = "gpt-5-nano"
     ollama_base_url: str | None = None
     ollama_model: str = "qwen2.5:3b"
 

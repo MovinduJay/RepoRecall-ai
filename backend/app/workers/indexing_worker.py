@@ -10,7 +10,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from app.core.config import settings
 from app.db.session import dispose_engine, get_session_factory
-from app.ingestion.github_client import GitHubApiClient
+from app.ingestion.github_client import GitHubApiClient, GitHubApiError
 from app.ingestion.normalizers import (
     CommitFileInput,
     PullRequestFileInput,
@@ -28,6 +28,9 @@ from app.models.indexing_job import IndexingJob
 from app.models.pull_request_file import PullRequestFile
 from app.models.raw_document import RawDocument
 from app.models.repository import Repository
+from app.retrieval.commit_diff_indexer import index_repository_commit_diffs
+from app.retrieval.diff_indexer import index_repository_diffs
+from app.retrieval.indexer import index_repository_documents
 
 logging.basicConfig(
     level=logging.INFO,
@@ -114,6 +117,7 @@ async def process_job(job_id: uuid.UUID) -> None:
             await _upsert_documents(repository.id, documents)
             await _upsert_pull_request_files(repository.id, pull_request_files)
             await _upsert_commit_files(repository.id, commit_files)
+            await _index_repository_content(repository.id)
             latest_sha = commits[0].get("sha") if commits else repository.latest_indexed_sha
             await _mark_completed(
                 job_id=job.id,
@@ -205,17 +209,47 @@ async def _fetch_pull_request_files(
         if not isinstance(pull_request_number, int):
             continue
 
-        file_items = await client.list_pull_request_files(
-            owner=owner,
-            name=name,
-            pull_request_number=pull_request_number,
-            max_items=FILES_PER_PULL_REQUEST_LIMIT,
-        )
+        try:
+            file_items = await client.list_pull_request_files(
+                owner=owner,
+                name=name,
+                pull_request_number=pull_request_number,
+                max_items=FILES_PER_PULL_REQUEST_LIMIT,
+            )
+        except GitHubApiError as exc:
+            if exc.status_code != 422:
+                raise
+            logger.warning(
+                "Skipping unavailable diff for %s/%s pull request #%s: %s",
+                owner,
+                name,
+                pull_request_number,
+                exc,
+            )
+            continue
         normalized_files.extend(
             normalize_pull_request_file(pull_request_number, item) for item in file_items
         )
 
     return normalized_files
+
+
+async def _index_repository_content(repository_id: uuid.UUID) -> None:
+    """Populate every Qdrant collection before an indexing job completes."""
+
+    async with get_session_factory()() as session:
+        document_result = await index_repository_documents(session, repository_id)
+        diff_result = await index_repository_diffs(session, repository_id)
+        commit_diff_result = await index_repository_commit_diffs(session, repository_id)
+
+    logger.info(
+        "Indexed repository %s in Qdrant: %s document chunks, %s PR diff chunks, "
+        "and %s commit diff chunks",
+        repository_id,
+        document_result["chunks_indexed"],
+        diff_result["chunks_indexed"],
+        commit_diff_result["chunks_indexed"],
+    )
 
 
 async def _upsert_pull_request_files(

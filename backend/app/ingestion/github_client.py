@@ -11,6 +11,10 @@ from app.core.config import settings
 class GitHubApiError(RuntimeError):
     """Base error raised for GitHub API failures."""
 
+    def __init__(self, message: str, *, status_code: int | None = None) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+
 
 class GitHubNotFoundError(GitHubApiError):
     """Raised when a repository or resource does not exist or is inaccessible."""
@@ -205,5 +209,6 @@ class GitHubApiClient:
         except httpx.HTTPStatusError as exc:
             message = response.text[:500] or response.reason_phrase
             raise GitHubApiError(
-                f"GitHub API request failed with status {response.status_code}: {message}"
+                f"GitHub API request failed with status {response.status_code}: {message}",
+                status_code=response.status_code,
             ) from exc

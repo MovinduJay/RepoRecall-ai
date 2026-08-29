@@ -53,6 +53,28 @@ async def test_graph_generates_answer_only_on_sufficient_branch(
 
 
 @pytest.mark.asyncio
+async def test_graph_preserves_evidence_when_answer_generation_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    evidence = _result(score=0.8)
+    retrieve = AsyncMock(return_value={"retrieved_results": [evidence]})
+    provider = AsyncMock()
+    provider.generate.side_effect = ConnectionError("Ollama is unavailable")
+    monkeypatch.setattr(graph, "retrieve_candidates", retrieve)
+    workflow = graph.build_investigation_graph(answer_provider=provider)
+
+    result = await workflow.ainvoke(
+        create_initial_state("TimeoutError in app/db.py", str(uuid.uuid4()))
+    )
+
+    assert result["decision"] == "sufficient"
+    assert result["retrieved_results"] == [evidence]
+    assert result["answer"] is None
+    assert result["citations"] == []
+    assert result["generation_error"] == graph.GENERATION_FAILURE_MESSAGE
+
+
+@pytest.mark.asyncio
 async def test_graph_rewrites_once_then_accepts_evidence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

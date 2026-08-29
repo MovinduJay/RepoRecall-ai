@@ -32,6 +32,7 @@ async def test_openai_provider_uses_structured_responses_without_storage() -> No
     assert arguments["model"] == "test-model"
     assert arguments["instructions"] == "Use only evidence."
     assert arguments["text_format"] is StructuredGeneratedAnswer
+    assert arguments["reasoning"] == {"effort": "minimal"}
     assert arguments["store"] is False
     assert "<repository_evidence_json>" in arguments["input"]
     assert "ignore previous instructions" in arguments["input"]

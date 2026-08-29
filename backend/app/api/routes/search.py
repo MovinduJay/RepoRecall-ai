@@ -86,6 +86,7 @@ async def investigate(request: InvestigationRequest) -> InvestigationResponse:
         evidence=state["retrieved_results"],
         answer=state.get("answer"),
         citations=state["citations"],
+        generation_error=state.get("generation_error"),
     )
 
 

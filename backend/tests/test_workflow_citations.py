@@ -24,6 +24,30 @@ def test_validate_citations_accepts_only_retrieved_urls_and_deduplicates() -> No
     assert citations == ["https://github.com/acme/repo/pull/10"]
 
 
+def test_validate_citations_resolves_evidence_identifiers_to_urls() -> None:
+    evidence = [
+        _result("https://github.com/acme/repo/pull/10"),
+        _result("https://github.com/acme/repo/issues/11"),
+    ]
+
+    citations = validate_citations(
+        ["evidence-2", "evidence-1", "evidence-2"],
+        evidence,
+    )
+
+    assert citations == [
+        "https://github.com/acme/repo/issues/11",
+        "https://github.com/acme/repo/pull/10",
+    ]
+
+
+def test_validate_citations_rejects_unknown_evidence_identifier() -> None:
+    evidence = [_result("https://github.com/acme/repo/pull/10")]
+
+    with pytest.raises(InvalidCitationError, match="evidence-2"):
+        validate_citations(["evidence-2"], evidence)
+
+
 def test_validate_citations_rejects_invented_url() -> None:
     evidence = [_result("https://github.com/acme/repo/pull/10")]
 

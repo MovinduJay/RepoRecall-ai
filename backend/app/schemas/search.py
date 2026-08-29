@@ -106,6 +106,7 @@ class InvestigationResponse(BaseModel):
     evidence: list[RerankedSearchResultRead]
     answer: str | None
     citations: list[str]
+    generation_error: str | None
 
 
 class DiffSearchRequest(SemanticSearchRequest):

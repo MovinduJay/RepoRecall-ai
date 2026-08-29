@@ -10,7 +10,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from app.core.config import settings
 from app.db.session import dispose_engine, get_session_factory
-from app.ingestion.github_client import GitHubApiClient
+from app.ingestion.github_client import GitHubApiClient, GitHubApiError
 from app.ingestion.normalizers import (
     CommitFileInput,
     PullRequestFileInput,
@@ -28,6 +28,9 @@ from app.models.indexing_job import IndexingJob
 from app.models.pull_request_file import PullRequestFile
 from app.models.raw_document import RawDocument
 from app.models.repository import Repository
+from app.retrieval.commit_diff_indexer import index_repository_commit_diffs
+from app.retrieval.diff_indexer import index_repository_diffs
+from app.retrieval.indexer import index_repository_documents
 
 logging.basicConfig(
     level=logging.INFO,
@@ -39,6 +42,7 @@ PULL_REQUESTS_WITH_FILES_LIMIT = 10
 FILES_PER_PULL_REQUEST_LIMIT = 100
 COMMITS_WITH_FILES_LIMIT = 10
 FILES_PER_COMMIT_LIMIT = 100
+DATABASE_WRITE_BATCH_SIZE = 500
 
 
 async def claim_next_job() -> uuid.UUID | None:
@@ -114,6 +118,7 @@ async def process_job(job_id: uuid.UUID) -> None:
             await _upsert_documents(repository.id, documents)
             await _upsert_pull_request_files(repository.id, pull_request_files)
             await _upsert_commit_files(repository.id, commit_files)
+            await _index_repository_content(repository.id)
             latest_sha = commits[0].get("sha") if commits else repository.latest_indexed_sha
             await _mark_completed(
                 job_id=job.id,
@@ -169,26 +174,27 @@ async def _upsert_documents(
         for document in documents
     ]
 
-    statement = insert(RawDocument).values(values)
-    statement = statement.on_conflict_do_update(
-        constraint="uq_raw_document_repository_source",
-        set_={
-            "source_number": statement.excluded.source_number,
-            "title": statement.excluded.title,
-            "body": statement.excluded.body,
-            "html_url": statement.excluded.html_url,
-            "author": statement.excluded.author,
-            "state": statement.excluded.state,
-            "document_metadata": statement.excluded.document_metadata,
-            "content_hash": statement.excluded.content_hash,
-            "github_created_at": statement.excluded.github_created_at,
-            "github_updated_at": statement.excluded.github_updated_at,
-            "ingested_at": datetime.now(UTC),
-        },
-    )
-
     async with get_session_factory()() as session, session.begin():
-        await session.execute(statement)
+        for start in range(0, len(values), DATABASE_WRITE_BATCH_SIZE):
+            batch = values[start : start + DATABASE_WRITE_BATCH_SIZE]
+            statement = insert(RawDocument).values(batch)
+            statement = statement.on_conflict_do_update(
+                constraint="uq_raw_document_repository_source",
+                set_={
+                    "source_number": statement.excluded.source_number,
+                    "title": statement.excluded.title,
+                    "body": statement.excluded.body,
+                    "html_url": statement.excluded.html_url,
+                    "author": statement.excluded.author,
+                    "state": statement.excluded.state,
+                    "document_metadata": statement.excluded.document_metadata,
+                    "content_hash": statement.excluded.content_hash,
+                    "github_created_at": statement.excluded.github_created_at,
+                    "github_updated_at": statement.excluded.github_updated_at,
+                    "ingested_at": datetime.now(UTC),
+                },
+            )
+            await session.execute(statement)
 
 
 async def _fetch_pull_request_files(
@@ -205,17 +211,47 @@ async def _fetch_pull_request_files(
         if not isinstance(pull_request_number, int):
             continue
 
-        file_items = await client.list_pull_request_files(
-            owner=owner,
-            name=name,
-            pull_request_number=pull_request_number,
-            max_items=FILES_PER_PULL_REQUEST_LIMIT,
-        )
+        try:
+            file_items = await client.list_pull_request_files(
+                owner=owner,
+                name=name,
+                pull_request_number=pull_request_number,
+                max_items=FILES_PER_PULL_REQUEST_LIMIT,
+            )
+        except GitHubApiError as exc:
+            if exc.status_code != 422:
+                raise
+            logger.warning(
+                "Skipping unavailable diff for %s/%s pull request #%s: %s",
+                owner,
+                name,
+                pull_request_number,
+                exc,
+            )
+            continue
         normalized_files.extend(
             normalize_pull_request_file(pull_request_number, item) for item in file_items
         )
 
     return normalized_files
+
+
+async def _index_repository_content(repository_id: uuid.UUID) -> None:
+    """Populate every Qdrant collection before an indexing job completes."""
+
+    async with get_session_factory()() as session:
+        document_result = await index_repository_documents(session, repository_id)
+        diff_result = await index_repository_diffs(session, repository_id)
+        commit_diff_result = await index_repository_commit_diffs(session, repository_id)
+
+    logger.info(
+        "Indexed repository %s in Qdrant: %s document chunks, %s PR diff chunks, "
+        "and %s commit diff chunks",
+        repository_id,
+        document_result["chunks_indexed"],
+        diff_result["chunks_indexed"],
+        commit_diff_result["chunks_indexed"],
+    )
 
 
 async def _upsert_pull_request_files(
@@ -388,9 +424,34 @@ async def _mark_failed(job_id: uuid.UUID, error_message: str) -> None:
             repository.indexing_status = "failed"
 
 
+async def recover_interrupted_jobs() -> int:
+    """Fail jobs left running when the single worker process was interrupted."""
+
+    recovered = 0
+    async with get_session_factory()() as session, session.begin():
+        result = await session.execute(
+            select(IndexingJob).where(IndexingJob.status == "running")
+        )
+        for job in result.scalars().all():
+            job.status = "failed"
+            job.error_message = (
+                "Indexing was interrupted because the background worker restarted. "
+                "Start the repository sync again."
+            )
+            job.completed_at = datetime.now(UTC)
+            repository = await session.get(Repository, job.repository_id)
+            if repository is not None:
+                repository.indexing_status = "failed"
+            recovered += 1
+    return recovered
+
+
 async def run_worker() -> None:
     logger.info("RepoRecall indexing worker started")
     try:
+        recovered_jobs = await recover_interrupted_jobs()
+        if recovered_jobs:
+            logger.warning("Marked %s interrupted indexing job(s) as failed", recovered_jobs)
         while True:
             job_id = await claim_next_job()
             if job_id is None:

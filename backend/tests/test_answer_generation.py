@@ -53,6 +53,23 @@ async def test_generate_answer_rejects_invented_or_missing_citations() -> None:
 
 
 @pytest.mark.asyncio
+async def test_generate_answer_resolves_provider_evidence_identifier() -> None:
+    state = _sufficient_state()
+    provider = AsyncMock()
+    provider.generate.return_value = GeneratedAnswer(
+        answer="The timeout was increased.",
+        citations=["evidence-1"],
+    )
+
+    updates = await generate_answer(state, provider)
+
+    assert updates == {
+        "answer": "The timeout was increased.",
+        "citations": ["https://github.com/acme/repo/pull/10"],
+    }
+
+
+@pytest.mark.asyncio
 async def test_generate_answer_requires_sufficient_nonempty_evidence() -> None:
     provider = AsyncMock()
     weak_state = create_initial_state("database timeout", "repository-id")

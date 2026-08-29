@@ -1,4 +1,5 @@
 import { ThemeToggle } from "@/components/theme-toggle";
+import { RepositoryConnector } from "@/components/repository-connector";
 import { ApiRequestError, getApiHealth } from "@/lib/api";
 
 async function loadHealth() {
@@ -33,11 +34,7 @@ export default async function Home() {
         <div className="eyebrow"><span>●</span> Your repository remembers</div>
         <h1>Ask the codebase.<br /><span>Find the why.</span></h1>
         <p className="hero-copy">Trace bugs back through commits, pull requests, and issues. RepoRecall turns repository history into answers grounded in the evidence your team already created.</p>
-        <div className="search-console">
-          <div className="console-bar"><div className="window-dots" aria-hidden="true"><i /><i /><i /></div><span className="console-path">reporecall / semantic-search</span><span className="console-branch"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4" cy="3" r="2" /><circle cx="12" cy="4" r="2" /><circle cx="4" cy="13" r="2" /><path d="M4 5v6M10 4H8a4 4 0 0 0-4 4" /></svg>main</span></div>
-          <div className="query-row"><span className="prompt-sign" aria-hidden="true">›</span><label className="sr-only" htmlFor="history-query">Search repository history</label><input id="history-query" type="text" placeholder="Why did we stop retrying failed webhooks?" aria-describedby="query-hint" /><button type="button" className="search-button" title="Search UI coming next"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" /><path d="m13 13 4 4" /></svg>Search history</button></div>
-          <div className="query-hints" id="query-hint"><span><kbd>⌘</kbd><kbd>K</kbd> to focus</span><span>issues</span><span>pull requests</span><span>commits</span></div>
-        </div>
+        <RepositoryConnector />
       </section>
 
       <section className="proof-section" aria-labelledby="proof-title">

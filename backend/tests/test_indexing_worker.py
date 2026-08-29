@@ -1,9 +1,11 @@
 import uuid
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from app.ingestion.github_client import GitHubApiError
+from app.ingestion.normalizers import RawDocumentInput
 from app.workers import indexing_worker
 
 
@@ -99,6 +101,41 @@ async def test_index_repository_content_populates_every_qdrant_collection(
     index_documents.assert_awaited_once_with(session, repository_id)
     index_diffs.assert_awaited_once_with(session, repository_id)
     index_commit_diffs.assert_awaited_once_with(session, repository_id)
+
+
+@pytest.mark.asyncio
+async def test_upsert_documents_batches_large_syncs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = AsyncMock()
+    session_context = AsyncMock()
+    session_context.__aenter__.return_value = session
+    transaction_context = AsyncMock()
+    session.begin = Mock(return_value=transaction_context)
+    session_factory = Mock(return_value=session_context)
+    monkeypatch.setattr(indexing_worker, "get_session_factory", lambda: session_factory)
+    document = RawDocumentInput(
+        source_type="issue",
+        source_id="1",
+        source_number=1,
+        title="Repeated timeout",
+        body="The request timed out.",
+        html_url="https://github.com/acme/billing/issues/1",
+        author="octocat",
+        state="open",
+        document_metadata={},
+        github_created_at=datetime.now(UTC),
+        github_updated_at=datetime.now(UTC),
+        content_hash="hash",
+    )
+    document_count = indexing_worker.DATABASE_WRITE_BATCH_SIZE * 2 + 1
+
+    await indexing_worker._upsert_documents(
+        uuid.uuid4(),
+        [document] * document_count,
+    )
+
+    assert session.execute.await_count == 3
 
 
 @pytest.mark.asyncio

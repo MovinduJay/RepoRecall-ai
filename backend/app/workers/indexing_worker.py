@@ -42,6 +42,7 @@ PULL_REQUESTS_WITH_FILES_LIMIT = 10
 FILES_PER_PULL_REQUEST_LIMIT = 100
 COMMITS_WITH_FILES_LIMIT = 10
 FILES_PER_COMMIT_LIMIT = 100
+DATABASE_WRITE_BATCH_SIZE = 500
 
 
 async def claim_next_job() -> uuid.UUID | None:
@@ -173,26 +174,27 @@ async def _upsert_documents(
         for document in documents
     ]
 
-    statement = insert(RawDocument).values(values)
-    statement = statement.on_conflict_do_update(
-        constraint="uq_raw_document_repository_source",
-        set_={
-            "source_number": statement.excluded.source_number,
-            "title": statement.excluded.title,
-            "body": statement.excluded.body,
-            "html_url": statement.excluded.html_url,
-            "author": statement.excluded.author,
-            "state": statement.excluded.state,
-            "document_metadata": statement.excluded.document_metadata,
-            "content_hash": statement.excluded.content_hash,
-            "github_created_at": statement.excluded.github_created_at,
-            "github_updated_at": statement.excluded.github_updated_at,
-            "ingested_at": datetime.now(UTC),
-        },
-    )
-
     async with get_session_factory()() as session, session.begin():
-        await session.execute(statement)
+        for start in range(0, len(values), DATABASE_WRITE_BATCH_SIZE):
+            batch = values[start : start + DATABASE_WRITE_BATCH_SIZE]
+            statement = insert(RawDocument).values(batch)
+            statement = statement.on_conflict_do_update(
+                constraint="uq_raw_document_repository_source",
+                set_={
+                    "source_number": statement.excluded.source_number,
+                    "title": statement.excluded.title,
+                    "body": statement.excluded.body,
+                    "html_url": statement.excluded.html_url,
+                    "author": statement.excluded.author,
+                    "state": statement.excluded.state,
+                    "document_metadata": statement.excluded.document_metadata,
+                    "content_hash": statement.excluded.content_hash,
+                    "github_created_at": statement.excluded.github_created_at,
+                    "github_updated_at": statement.excluded.github_updated_at,
+                    "ingested_at": datetime.now(UTC),
+                },
+            )
+            await session.execute(statement)
 
 
 async def _fetch_pull_request_files(

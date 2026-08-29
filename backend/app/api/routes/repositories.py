@@ -4,7 +4,7 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +16,7 @@ from app.schemas.indexing_job import IndexingJobRead, RepositorySyncRequest
 from app.schemas.repository import RepositoryCreate, RepositoryRead
 
 router = APIRouter(prefix="/repositories", tags=["repositories"])
+GLOBAL_INDEXING_ADVISORY_LOCK_ID = 1_381_321_807
 
 
 @router.post("", response_model=RepositoryRead, status_code=status.HTTP_201_CREATED)
@@ -70,16 +71,22 @@ async def start_repository_sync(
             detail="Repository was not found",
         )
 
+    # Serialize admission so simultaneous requests cannot both create work for
+    # the single indexing worker.
+    await session.execute(
+        text("SELECT pg_advisory_xact_lock(:lock_id)"),
+        {"lock_id": GLOBAL_INDEXING_ADVISORY_LOCK_ID},
+    )
     active_job_result = await session.execute(
-        select(IndexingJob.id).where(
-            IndexingJob.repository_id == repository_id,
-            IndexingJob.status.in_(["pending", "running"]),
-        )
+        select(IndexingJob.id).where(IndexingJob.status.in_(["pending", "running"])).limit(1)
     )
     if active_job_result.scalar_one_or_none() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Repository already has an active indexing job",
+            detail=(
+                "Another repository is currently being indexed. "
+                "Wait for it to complete before starting a new repository sync."
+            ),
         )
 
     requested_limit = payload.max_items_per_source if payload else None

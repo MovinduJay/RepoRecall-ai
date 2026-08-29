@@ -6,7 +6,7 @@ export async function POST(request: Request, context: RouteContext<"/api/reposit
   return forwardResponse(
     await backendRequest(`/api/v1/repositories/${repositoryId}/sync`, {
       method: "POST",
-      body: body || JSON.stringify({ max_items_per_source: 500 }),
+      body: body || JSON.stringify({ max_items_per_source: 200 }),
     }),
   );
 }

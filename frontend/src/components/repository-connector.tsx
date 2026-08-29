@@ -40,7 +40,7 @@ type Investigation = {
   generation_error: string | null;
 };
 
-const INDEXING_LIMIT = 500;
+const INDEXING_LIMIT = 200;
 
 async function readJson<T>(response: Response): Promise<T> {
   const payload = (await response.json()) as T & { detail?: string };
@@ -173,7 +173,7 @@ export function RepositoryConnector() {
     <div className="connector-card">
       <div className="connector-heading">
         <div><span className="step-number">01</span><h2>Connect a repository</h2></div>
-        <span className="public-label">Deep history · up to 500/source</span>
+        <span className="public-label">Deep history · up to 200/source</span>
       </div>
 
       <form className="connector-form" onSubmit={connectRepository}>
@@ -191,7 +191,8 @@ export function RepositoryConnector() {
       {selected && !error && <div className={`connector-message ${job?.status === "failed" ? "is-error" : "is-success"}`}>
         <div className="connected-repo"><span className="repo-avatar">{selected.owner.slice(0, 1).toUpperCase()}</span><div><strong>{selected.owner}/{selected.name}</strong><span>{selected.default_branch} · {job ? job.status : selected.indexing_status}</span></div></div>
         {job && <div className="job-progress"><div><span style={{ width: job.status === "completed" ? "100%" : job.status === "running" ? "62%" : "18%" }} /></div><p>{job.status === "completed" ? `${job.documents_upserted} documents indexed. Ready to search.` : job.status === "failed" ? job.error_message : "Collecting GitHub history and building the search index…"}</p></div>}
-        {!job && selected.indexing_status === "completed" && <div className="ready-actions"><span className="ready-copy">✓ Ready to search</span><button type="button" onClick={reindexSelected} disabled={busy}>{busy ? "Starting…" : "Deep re-index (500)"}</button></div>}
+        {!job && selected.indexing_status === "completed" && <div className="ready-actions"><span className="ready-copy">✓ Ready to search</span><button type="button" onClick={reindexSelected} disabled={busy}>{busy ? "Starting…" : "Deep re-index (200)"}</button></div>}
+        {(job?.status === "failed" || (!job && selected.indexing_status === "failed")) && <button className="retry-button" type="button" onClick={reindexSelected} disabled={busy}>{busy ? "Retrying…" : "Retry indexing"}<span>↻</span></button>}
       </div>}
     </div>
 

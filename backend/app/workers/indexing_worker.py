@@ -424,9 +424,34 @@ async def _mark_failed(job_id: uuid.UUID, error_message: str) -> None:
             repository.indexing_status = "failed"
 
 
+async def recover_interrupted_jobs() -> int:
+    """Fail jobs left running when the single worker process was interrupted."""
+
+    recovered = 0
+    async with get_session_factory()() as session, session.begin():
+        result = await session.execute(
+            select(IndexingJob).where(IndexingJob.status == "running")
+        )
+        for job in result.scalars().all():
+            job.status = "failed"
+            job.error_message = (
+                "Indexing was interrupted because the background worker restarted. "
+                "Start the repository sync again."
+            )
+            job.completed_at = datetime.now(UTC)
+            repository = await session.get(Repository, job.repository_id)
+            if repository is not None:
+                repository.indexing_status = "failed"
+            recovered += 1
+    return recovered
+
+
 async def run_worker() -> None:
     logger.info("RepoRecall indexing worker started")
     try:
+        recovered_jobs = await recover_interrupted_jobs()
+        if recovered_jobs:
+            logger.warning("Marked %s interrupted indexing job(s) as failed", recovered_jobs)
         while True:
             job_id = await claim_next_job()
             if job_id is None:

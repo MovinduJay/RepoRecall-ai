@@ -1,5 +1,6 @@
 import uuid
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -136,6 +137,39 @@ async def test_upsert_documents_batches_large_syncs(
     )
 
     assert session.execute.await_count == 3
+
+
+@pytest.mark.asyncio
+async def test_recover_interrupted_jobs_marks_running_work_failed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository_id = uuid.uuid4()
+    job = SimpleNamespace(
+        status="running",
+        repository_id=repository_id,
+        error_message=None,
+        completed_at=None,
+    )
+    repository = SimpleNamespace(indexing_status="queued")
+    result = Mock()
+    result.scalars.return_value.all.return_value = [job]
+    session = AsyncMock()
+    session.execute.return_value = result
+    session.get.return_value = repository
+    session_context = AsyncMock()
+    session_context.__aenter__.return_value = session
+    transaction_context = AsyncMock()
+    session.begin = Mock(return_value=transaction_context)
+    session_factory = Mock(return_value=session_context)
+    monkeypatch.setattr(indexing_worker, "get_session_factory", lambda: session_factory)
+
+    recovered = await indexing_worker.recover_interrupted_jobs()
+
+    assert recovered == 1
+    assert job.status == "failed"
+    assert "worker restarted" in job.error_message
+    assert job.completed_at is not None
+    assert repository.indexing_status == "failed"
 
 
 @pytest.mark.asyncio

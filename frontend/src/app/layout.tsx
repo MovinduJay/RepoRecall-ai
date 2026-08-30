@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RepoRecall — Your repository remembers",
+  title: "RepoRecall - Your repository remembers",
   description: "Evidence-backed historical bug-fix search for engineering teams",
 };
 
